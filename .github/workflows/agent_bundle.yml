@@ -45,12 +45,12 @@ jobs:
       - name: Validate run report
         run: |
           python - <<'PY'
-import json
-from pathlib import Path
+          import json
+          from pathlib import Path
 
-report = json.loads(Path("tmp/run/report.json").read_text(encoding="utf-8"))
-assert report["error"] is not None
-assert report["success"] is False
-assert report["policy_decisions"]
-assert any(not decision.get("allowed", True) for decision in report["policy_decisions"])
-PY
+          report = json.loads(Path("tmp/run/report.json").read_text(encoding="utf-8"))
+          assert report["error"] is not None
+          assert report["success"] is False
+          assert report["policy_decisions"]
+          assert any(not decision.get("allowed", True) for decision in report["policy_decisions"])
+          PY
