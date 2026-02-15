@@ -12,5 +12,5 @@ fi
 export PYTHONPATH="${TEMPLATE_DIR}${PYTHONPATH:+:${PYTHONPATH}}"
 
 # shellcheck disable=SC2086 # JSON string needs word splitting as-is
-timeout 120s tm run "${FLOW}" -i "${INPUT}"
+timeout 120s tm run recipe "${FLOW}" -i "${INPUT}"
 echo "OK: hello flow finished"

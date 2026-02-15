@@ -1,0 +1,189 @@
+body:
+  agents:
+  - agent_id: tm-agent/noop:0.1
+    config_schema:
+      type: object
+    contract:
+      effects:
+      - evidence:
+          type: status
+        idempotency:
+          key_fields:
+          - artifact_id
+          type: keyed
+        kind: resource
+        name: noop-effect
+        target: state:noop.out
+      inputs:
+      - kind: artifact
+        mode: read
+        ref: artifact:http_request
+        required: true
+        schema:
+          type: object
+      outputs:
+      - kind: resource
+        mode: write
+        ref: state:noop.out
+        required: false
+        schema:
+          type: object
+    evidence_outputs:
+    - description: noop evidence
+      name: noop
+    name: noop
+    role: builtin
+    runtime:
+      config: {}
+      kind: tm-noop
+    version: '0.1'
+  - agent_id: tm-agent/http-mock:0.1
+    config_schema:
+      type: object
+    contract:
+      effects:
+      - evidence:
+          type: status
+        idempotency:
+          key_fields:
+          - artifact_id
+          type: keyed
+        kind: resource
+        name: respond
+        target: artifact:http_response
+      inputs:
+      - kind: artifact
+        mode: read
+        ref: artifact:http_request
+        required: true
+        schema:
+          type: object
+      outputs:
+      - kind: artifact
+        mode: write
+        ref: artifact:http_response
+        required: false
+        schema:
+          type: object
+    evidence_outputs:
+    - description: deterministically mocked http response
+      name: http_mock
+    name: http_mock
+    role: builtin
+    runtime:
+      config:
+        responses:
+          GET https://example.com/api/demo:
+            body: ok
+            headers:
+              x-demo: builtin
+            status: 200
+      kind: tm-http-mock
+    version: '0.1'
+  - agent_id: tm-agent/shell:0.1
+    config_schema:
+      type: object
+    contract:
+      effects:
+      - evidence:
+          type: status
+        idempotency:
+          key_fields:
+          - command
+          type: keyed
+        kind: resource
+        name: report-guard
+        target: state:shell.stdout
+      - evidence:
+          type: status
+        idempotency:
+          key_fields:
+          - command
+          type: keyed
+        kind: resource
+        name: report-guard-stderr
+        target: state:shell.stderr
+      - evidence:
+          type: status
+        idempotency:
+          key_fields:
+          - command
+          type: keyed
+        kind: resource
+        name: report-guard-code
+        target: state:shell.exit_code
+      inputs: []
+      outputs:
+      - kind: resource
+        mode: write
+        ref: state:shell.stdout
+        required: false
+        schema:
+          type: string
+      - kind: resource
+        mode: write
+        ref: state:shell.stderr
+        required: false
+        schema:
+          type: string
+      - kind: resource
+        mode: write
+        ref: state:shell.exit_code
+        required: false
+        schema:
+          type: integer
+    evidence_outputs:
+    - description: guard-denied shell attempt
+      name: shell
+    name: shell
+    role: builtin
+    runtime:
+      config:
+        command: echo guard
+      kind: tm-shell
+    version: '0.1'
+  bundle_id: tm-bundle/demo
+  meta:
+    policy:
+      allow:
+      - state:noop.out
+      - artifact:http_response
+    preconditions:
+    - artifact:http_request
+  plan:
+  - agent_id: tm-agent/noop:0.1
+    inputs:
+    - artifact:http_request
+    outputs:
+    - state:noop.out
+    phase: run
+    step: noop-step
+  - agent_id: tm-agent/http-mock:0.1
+    inputs:
+    - artifact:http_request
+    outputs:
+    - artifact:http_response
+    phase: run
+    step: http-step
+  - agent_id: tm-agent/shell:0.1
+    outputs:
+    - state:shell.stdout
+    - state:shell.stderr
+    - state:shell.exit_code
+    phase: run
+    step: shell-step
+envelope:
+  artifact_id: tm-agent-bundle-demo
+  artifact_type: agent_bundle
+  body_hash: bdeab08ee77ebd923f7feb75a5aab60cf41f14ab0a9c6ff450415dd0a5d5464f
+  created_at: '2024-01-01T10:00:00Z'
+  created_by: trace-cli
+  envelope_hash: ''
+  meta:
+    determinism: true
+    hashes:
+      body_hash: bdeab08ee77ebd923f7feb75a5aab60cf41f14ab0a9c6ff450415dd0a5d5464f
+    phase: example
+    produced_by: tracemind.verifier.v0
+  status: accepted
+  version: v0

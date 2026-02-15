@@ -1,18 +1,10 @@
+# Agent bundle steps are now part of CI (ci.yml job: agent-bundle-smoke).
+# This file is kept for manual runs only; push/PR no longer trigger it to avoid
+# two workflows starting and one being aborted.
 name: Agent Bundle Smoke
 
 on:
-  push:
-    paths:
-      - 'specs/examples/agent_bundle_v0/**'
-      - 'tests/test_golden_agent_bundle_v0.py'
-      - 'tests/test_builtin_agents_v0.py'
-      - 'tm/**'
-  pull_request:
-    paths:
-      - 'specs/examples/agent_bundle_v0/**'
-      - 'tests/test_golden_agent_bundle_v0.py'
-      - 'tests/test_builtin_agents_v0.py'
-      - 'tm/**'
+  workflow_dispatch:
 
 jobs:
   run:

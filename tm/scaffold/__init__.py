@@ -475,7 +475,7 @@ def _project_readme(extra_notes: list[str]) -> str:
 
         ```bash
         pip install -e .
-        tm run flows/hello.yaml -i '{"name":"world"}'
+        tm run recipe flows/hello.yaml -i '{"name":"world"}'
         ```
 
         ## Layout
@@ -520,7 +520,7 @@ _RUN_SCRIPT_TEMPLATE = dedent("""
     #!/usr/bin/env bash
     set -euo pipefail
 
-    tm run flows/hello.yaml "$@"
+    tm run recipe flows/hello.yaml "$@"
     """).lstrip() + "\n"
 
 

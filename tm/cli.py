@@ -704,36 +704,39 @@ def _build_parser() -> argparse.ArgumentParser:
 
     policy_parser.set_defaults(func=_cmd_new_policy)
 
-    run_parser = sub.add_parser("run", help="execute a flow recipe")
-    run_parser.add_argument("recipe", help="path to recipe (JSON or YAML)")
-    run_parser.add_argument("-i", "--input", default=None, help="JSON string or @file with initial state")
-    run_parser.add_argument(
+    run_parser = sub.add_parser("run", help="execute a flow recipe or agent bundle")
+    run_sub = run_parser.add_subparsers(dest="rcmd", required=True)
+    setattr(run_parser, "_run_subparsers", run_sub)
+    recipe_parser = run_sub.add_parser("recipe", help="execute a flow recipe (YAML/JSON)")
+    recipe_parser.add_argument("recipe", help="path to recipe (JSON or YAML)")
+    recipe_parser.add_argument("-i", "--input", default=None, help="JSON string or @file with initial state")
+    recipe_parser.add_argument(
         "--detached",
         action="store_true",
         help=f"enqueue the run for background workers (requires {_DAEMON_FLAG_ENV}=1)",
     )
-    run_parser.add_argument(
+    recipe_parser.add_argument(
         "--queue", choices=["file", "memory"], default="file", help="queue backend for detached runs"
     )
-    run_parser.add_argument(
+    recipe_parser.add_argument(
         "--queue-dir",
         default="data/queue",
         help="queue directory for detached runs when using the file backend",
     )
-    run_parser.add_argument(
+    recipe_parser.add_argument(
         "--idempotency-dir",
         default="data/idempotency",
         help="idempotency cache directory for detached runs",
     )
-    run_parser.add_argument(
+    recipe_parser.add_argument(
         "--idempotency-key",
         help="set idempotency key header for detached runs",
     )
-    run_parser.add_argument(
+    recipe_parser.add_argument(
         "--headers",
         help="additional headers JSON or @file (detached runs only)",
     )
-    run_parser.add_argument(
+    recipe_parser.add_argument(
         "--trace",
         help="trace metadata JSON or @file (detached runs only)",
     )
@@ -776,7 +779,7 @@ def _build_parser() -> argparse.ArgumentParser:
         result = run_recipe(Path(args.recipe), payload)
         print(json.dumps(result, ensure_ascii=False, indent=2))
 
-    run_parser.set_defaults(func=_cmd_run)
+    recipe_parser.set_defaults(func=_cmd_run)
 
     enqueue_parser = sub.add_parser(
         "enqueue",

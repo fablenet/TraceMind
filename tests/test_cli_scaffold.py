@@ -13,7 +13,7 @@ def test_init_project_creates_yaml_layout(tmp_path: Path):
     assert (root / "steps" / "impl.py").exists()
     assert (root / "services" / "hello.py").exists()
     readme = (root / "README.md").read_text("utf-8")
-    assert "tm run flows/hello.yaml" in readme
+    assert "tm run recipe flows/hello.yaml" in readme
 
 
 def test_create_flow_variants_appends_stubs(tmp_path: Path):
