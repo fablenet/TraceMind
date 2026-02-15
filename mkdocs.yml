@@ -17,6 +17,7 @@ nav:
     - ADR-001 LLM Client: docs/architecture/adr-001-llm-client.md
   - Specs:
     - K-Ontology & Canonical AST v0.1: docs/specs/k-ontology-v0.1.md
+    - Policy determinism (M2 · ISSUE-003): docs/policy_determinism.md
   - Governance:
     - Baseline: docs/governance/baseline.md
   - Reference:

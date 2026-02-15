@@ -12,6 +12,7 @@ This doc set focuses on running, extending, and operating TraceMind Core Runtime
 ## Specs
 
 - **[K-Ontology & Canonical AST v0.1](specs/k-ontology-v0.1.md)** — Three-layer ontology (data/meta/meta-meta), canonical AST envelope, type catalog, and canonicalization rules for M1.
+- **[Policy determinism (M2 · ISSUE-003)](policy_determinism.md)** — Immutable rules for policy evaluation order, conflict strategy (first-wins), condition AST semantics, and canonical action_log.
 
 ## Governance Baseline (default constraints)
 

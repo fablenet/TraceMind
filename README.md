@@ -130,7 +130,7 @@ Policy defines enforceable boundaries:
 ## Repository Structure (as of today)
 
 - `tm/` — core runtime modules and tooling (artifacts, capabilities, composition, verification, governance)
-- `docs/` — design notes and the evolving semantic foundation
+- `docs/` — design notes and the evolving semantic foundation ([overview](docs/overview.md); specs include [policy determinism M2](docs/policy_determinism.md))
 - `examples/` — minimal reference flows to exercise the closed loop
 - `tests/` — validation and governance tests
 
