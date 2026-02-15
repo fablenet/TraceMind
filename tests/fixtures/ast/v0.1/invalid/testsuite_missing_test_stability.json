@@ -1,0 +1,18 @@
+{
+  "apiVersion": "tracemind.io/v0.1",
+  "kind": "TestSuite",
+  "metadata": {
+    "id": "suite-missing-stability",
+    "version": "1.0.0"
+  },
+  "spec": {
+    "suite_id": "suite-missing-stability",
+    "intent_refs": ["TM-INT-0003"],
+    "tests": [
+      {
+        "id": "ts-missing-stability",
+        "intent_refs": ["TM-INT-0003"]
+      }
+    ]
+  }
+}

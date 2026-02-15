@@ -6,7 +6,6 @@ from pathlib import Path
 
 import pytest
 
-
 pytest.importorskip("networkx", reason="CLI requires networkx dependency")
 
 

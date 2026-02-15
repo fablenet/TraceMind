@@ -1,0 +1,25 @@
+{
+  "apiVersion": "tracemind.io/v0.1",
+  "kind": "Candidate",
+  "metadata": {
+    "id": "candidate.intent.sample",
+    "version": "1.0.0",
+    "trace_links": {
+      "related_intents": ["TM-INT-0001"]
+    }
+  },
+  "spec": {
+    "artifact_type": "IntentTree",
+    "status": "candidate",
+    "intent_refs": ["TM-INT-0001"],
+    "source": {
+      "producer": "ai.guardian",
+      "method": "draft",
+      "timestamp": "2026-02-15T10:00:00Z"
+    },
+    "spec": {
+      "intent_id": "TM-INT-0001",
+      "title": "Sample intent payload"
+    }
+  }
+}

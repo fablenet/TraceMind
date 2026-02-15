@@ -8,3 +8,11 @@ This doc set focuses on running, extending, and operating TraceMind Core Runtime
 - T-DOC-03: Documentation & recipes (this package)
 
 **Zero-conflict** promise: these docs only add files; no code changes required.
+
+## Specs
+
+- **[K-Ontology & Canonical AST v0.1](specs/k-ontology-v0.1.md)** — Three-layer ontology (data/meta/meta-meta), canonical AST envelope, type catalog, and canonicalization rules for M1.
+
+## Governance Baseline (default constraints)
+
+Contributors must follow the [Governance Baseline](governance/baseline.md) and the [Non-negotiable Governance Rules](CONTRIBUTING.md#non-negotiable-governance-rules) in CONTRIBUTING. These rules cover AI→candidate→verify→accept flows, explicit artifact diffs, patch lifecycle, intent traceability, and the ban on runtime self-authorization.

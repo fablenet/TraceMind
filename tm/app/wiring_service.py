@@ -13,7 +13,6 @@ from tm.model.spec import ModelSpec, FieldSpec
 
 from tm.app.wiring_flows import _runtime as flow_runtime, _tuner as flow_tuner, _policy_adapter
 
-
 router = APIRouter(prefix="/service", tags=["service"])
 
 

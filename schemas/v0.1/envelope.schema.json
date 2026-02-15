@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tracemind.io/schemas/v0.1/envelope.schema.json",
+  "title": "TraceMind Canonical AST Envelope v0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["apiVersion", "kind", "metadata", "spec"],
+  "properties": {
+    "apiVersion": {
+      "const": "tracemind.io/v0.1",
+      "description": "Ontology version for canonical AST documents"
+    },
+    "kind": {
+      "type": "string",
+      "description": "Canonical AST kind discriminator"
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "version"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Stable identifier for this AST document"
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+(?:[-+].+)?$",
+          "description": "Semantic version for this AST document"
+        },
+        "trace_links": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "parent_intent": {
+              "type": "string"
+            },
+            "related_intents": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true
+            }
+          }
+        },
+        "labels": {
+          "type": "object",
+          "propertyNames": {
+            "pattern": "^[A-Za-z0-9_.-]+$"
+          },
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "spec": {
+      "type": "object",
+      "description": "Kind-specific payload"
+    }
+  }
+}

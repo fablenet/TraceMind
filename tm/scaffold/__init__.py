@@ -281,9 +281,7 @@ def _append_step_stubs(impl_path: Path, stubs: Dict[str, str]) -> None:
 
 
 def _flow_yaml_basic(slug: str) -> tuple[str, Dict[str, str]]:
-    content = (
-        dedent(
-            f"""
+    content = dedent(f"""
         flow:
           id: {slug}
           version: "1.0.0"
@@ -297,26 +295,17 @@ def _flow_yaml_basic(slug: str) -> tuple[str, Dict[str, str]]:
               kind: finish
           edges:
             - {{from: greet, to: finish}}
-        """
-        ).strip()
-        + "\n"
-    )
-    stubs = {
-        f"def {slug}_greet": dedent(
-            f"""
+        """).strip() + "\n"
+    stubs = {f"def {slug}_greet": dedent(f"""
             def {slug}_greet(ctx: Dict[str, Any], state: Dict[str, Any]) -> Dict[str, Any]:
                 name = state.get("name") or "world"
                 return {{"name": name, "message": f"Hello, {{name}}!"}}
-            """
-        )
-    }
+            """)}
     return content, stubs
 
 
 def _flow_yaml_switch(slug: str) -> tuple[str, Dict[str, str]]:
-    content = (
-        dedent(
-            f"""
+    content = dedent(f"""
         flow:
           id: {slug}
           version: "1.0.0"
@@ -351,48 +340,35 @@ def _flow_yaml_switch(slug: str) -> tuple[str, Dict[str, str]]:
             - {{from: router, to: branch_b, when: branch_b}}
             - {{from: branch_a, to: finish}}
             - {{from: branch_b, to: finish}}
-        """
-        ).strip()
-        + "\n"
-    )
+        """).strip() + "\n"
     stubs = {
-        f"def {slug}_start": dedent(
-            f"""
+        f"def {slug}_start": dedent(f"""
             def {slug}_start(ctx: Dict[str, Any], state: Dict[str, Any]) -> Dict[str, Any]:
                 return dict(state or {{}})
-            """
-        ),
-        f"def {slug}_route": dedent(
-            f"""
+            """),
+        f"def {slug}_route": dedent(f"""
             def {slug}_route(ctx: Dict[str, Any], state: Dict[str, Any]) -> str:
                 desired = state.get("route")
                 return desired if desired in {{"branch_a", "branch_b"}} else "branch_a"
-            """
-        ),
-        f"def {slug}_branch_a": dedent(
-            f"""
+            """),
+        f"def {slug}_branch_a": dedent(f"""
             def {slug}_branch_a(ctx: Dict[str, Any], state: Dict[str, Any]) -> Dict[str, Any]:
                 data = dict(state or {{}})
                 data["path"] = "branch_a"
                 return data
-            """
-        ),
-        f"def {slug}_branch_b": dedent(
-            f"""
+            """),
+        f"def {slug}_branch_b": dedent(f"""
             def {slug}_branch_b(ctx: Dict[str, Any], state: Dict[str, Any]) -> Dict[str, Any]:
                 data = dict(state or {{}})
                 data["path"] = "branch_b"
                 return data
-            """
-        ),
+            """),
     }
     return content, stubs
 
 
 def _flow_yaml_parallel(slug: str) -> tuple[str, Dict[str, str]]:
-    content = (
-        dedent(
-            f"""
+    content = dedent(f"""
         flow:
           id: {slug}
           version: "1.0.0"
@@ -415,29 +391,20 @@ def _flow_yaml_parallel(slug: str) -> tuple[str, Dict[str, str]]:
           edges:
             - {{from: start, to: fanout}}
             - {{from: fanout, to: finish}}
-        """
-        ).strip()
-        + "\n"
-    )
+        """).strip() + "\n"
     stubs = {
-        f"def {slug}_start": dedent(
-            f"""
+        f"def {slug}_start": dedent(f"""
             def {slug}_start(ctx: Dict[str, Any], state: Dict[str, Any]) -> Dict[str, Any]:
                 return dict(state or {{}})
-            """
-        ),
-        f"def {slug}_branch_a": dedent(
-            f"""
+            """),
+        f"def {slug}_branch_a": dedent(f"""
             def {slug}_branch_a(ctx: Dict[str, Any], state: Dict[str, Any]) -> Dict[str, Any]:
                 return {{"branch_a": True}}
-            """
-        ),
-        f"def {slug}_branch_b": dedent(
-            f"""
+            """),
+        f"def {slug}_branch_b": dedent(f"""
             def {slug}_branch_b(ctx: Dict[str, Any], state: Dict[str, Any]) -> Dict[str, Any]:
                 return {{"branch_b": True}}
-            """
-        ),
+            """),
     }
     return content, stubs
 
@@ -462,9 +429,7 @@ def _policy_yaml(slug: str, *, strategy: str, mcp_endpoint: Optional[str]) -> st
 
 
 def _steps_impl_template() -> str:
-    return (
-        dedent(
-            '''
+    return dedent('''
         """Step implementations for the scaffolded project."""
 
         from __future__ import annotations
@@ -475,16 +440,11 @@ def _steps_impl_template() -> str:
         def hello_greet(ctx: Dict[str, Any], state: Dict[str, Any]) -> Dict[str, Any]:
             name = state.get("name") or "world"
             return {"name": name, "message": f"Hello, {name}!"}
-        '''
-        ).lstrip()
-        + "\n"
-    )
+        ''').lstrip() + "\n"
 
 
 def _service_template() -> str:
-    return (
-        dedent(
-            '''
+    return dedent('''
         """Example service wrapper that runs the hello flow."""
 
         from __future__ import annotations
@@ -498,10 +458,7 @@ def _service_template() -> str:
         def run_hello(payload: Dict[str, Any]) -> Dict[str, Any]:
             recipe_path = Path(__file__).resolve().parent.parent / "flows" / "hello.yaml"
             return run_recipe(recipe_path, payload)
-        '''
-        ).lstrip()
-        + "\n"
-    )
+        ''').lstrip() + "\n"
 
 
 def _project_readme(extra_notes: list[str]) -> str:
@@ -509,9 +466,7 @@ def _project_readme(extra_notes: list[str]) -> str:
     if extra_notes:
         notes = "\n".join(f"- {note}" for note in extra_notes)
         notes_section = f"\n## Extras\n\n{notes}\n"
-    return (
-        dedent(
-            """
+    return dedent("""
         # TraceMind Project Scaffold
 
         This project was generated by `tm init`.
@@ -530,16 +485,10 @@ def _project_readme(extra_notes: list[str]) -> str:
         - `steps/impl.py` – Python step implementations.
         - `services/` – Optional wrappers or HTTP handlers.
         - `scripts/run_local.sh` – Convenience launcher.
-        """
-        ).lstrip()
-        + notes_section
-        + "\n"
-    )
+        """).lstrip() + notes_section + "\n"
 
 
-_PROM_HOOK_TEMPLATE = (
-    dedent(
-        '''
+_PROM_HOOK_TEMPLATE = dedent('''
     """Prometheus trace hook placeholder."""
 
     from prometheus_client import Counter
@@ -549,15 +498,10 @@ _PROM_HOOK_TEMPLATE = (
 
     def on_event(flow: str, status: str) -> None:
         TRACE_EVENTS.labels(flow=flow, status=status).inc()
-    '''
-    ).lstrip()
-    + "\n"
-)
+    ''').lstrip() + "\n"
 
 
-_RETROSPECT_TEMPLATE = (
-    dedent(
-        '''
+_RETROSPECT_TEMPLATE = dedent('''
     """Retrospect exporter placeholder."""
 
     from __future__ import annotations
@@ -569,23 +513,15 @@ _RETROSPECT_TEMPLATE = (
 
     def export_recent(dir_path: str, window_seconds: int = 300) -> Iterable[dict]:
         return load_window(dir_path, 0, window_seconds)
-    '''
-    ).lstrip()
-    + "\n"
-)
+    ''').lstrip() + "\n"
 
 
-_RUN_SCRIPT_TEMPLATE = (
-    dedent(
-        """
+_RUN_SCRIPT_TEMPLATE = dedent("""
     #!/usr/bin/env bash
     set -euo pipefail
 
     tm run flows/hello.yaml "$@"
-    """
-    ).lstrip()
-    + "\n"
-)
+    """).lstrip() + "\n"
 
 
 __all__ = [

@@ -32,15 +32,13 @@ def test_worker_supervisor_processes_tasks(tmp_path: Path, worker_count: int) ->
     idem_dir.mkdir()
     dlq_dir.mkdir()
     config_path = tmp_path / "trace_config.toml"
-    config_path.write_text(
-        """
+    config_path.write_text("""
 [retries.default]
 max_attempts = 3
 base_ms = 20
 factor = 2.0
 jitter_ms = 0
-""".strip()
-    )
+""".strip())
 
     # Seed tasks into the queue
     queue = FileWorkQueue(str(queue_dir))

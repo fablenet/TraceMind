@@ -29,7 +29,7 @@ def test_put_get_scan_delete(tmp_path, url):
 
         rows = list(ks.scan("metrics:"))
         assert len(rows) == 1
-        (key, value) = rows[0]
+        key, value = rows[0]
         assert key == "metrics:run:1"
         assert value["ok"] is True
 

@@ -1,0 +1,15 @@
+{
+  "apiVersion": "tracemind.io/v0.1",
+  "kind": "Candidate",
+  "metadata": {
+    "id": "candidate.invalid.status",
+    "version": "1.0.0"
+  },
+  "spec": {
+    "artifact_type": "IntentTree",
+    "intent_refs": ["TM-INT-1234"],
+    "spec": {
+      "intent_id": "TM-INT-1234"
+    }
+  }
+}

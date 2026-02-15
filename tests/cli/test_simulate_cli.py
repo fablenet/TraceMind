@@ -12,8 +12,7 @@ def _fixture(name: str) -> Path:
 
 def test_simulate_cli_detects_deadlock(tmp_path):
     flow_path = tmp_path / "deadlock.yml"
-    flow_path.write_text(
-        """
+    flow_path.write_text("""
 steps:
   A:
     locks:
@@ -23,8 +22,7 @@ steps:
     locks:
       - {name: cache, mode: exclusive}
       - {name: db, mode: exclusive}
-""".strip()
-    )
+""".strip())
     result = subprocess.run(
         [sys.executable, "-m", "tm", "simulate", "run", "--flow", str(flow_path), "--json"],
         capture_output=True,
@@ -37,16 +35,14 @@ steps:
 
 def test_simulate_cli_ok(tmp_path):
     flow_path = tmp_path / "ok.yml"
-    flow_path.write_text(
-        """
+    flow_path.write_text("""
 steps:
   start:
     locks:
       - {name: db, mode: shared}
     next: [finish]
   finish: {}
-""".strip()
-    )
+""".strip())
     result = subprocess.run(
         [sys.executable, "-m", "tm", "simulate", "run", "--flow", str(flow_path)],
         capture_output=True,

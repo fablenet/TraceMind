@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tracemind.io/schemas/v0.1/kinds/candidate.schema.json",
+  "title": "Canonical AST - Candidate",
+  "allOf": [
+    {
+      "$ref": "../envelope.schema.json"
+    },
+    {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "Candidate"
+        },
+        "spec": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["artifact_type", "status"],
+          "properties": {
+            "artifact_type": {
+              "type": "string",
+              "pattern": "^[A-Za-z][A-Za-z0-9_.-]*$"
+            },
+            "status": {
+              "const": "candidate"
+            },
+            "spec": {
+              "type": "object",
+              "description": "Embedded proposed artifact payload"
+            },
+            "payload_ref": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Reference to external payload if not embedded"
+            },
+            "intent_refs": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true
+            },
+            "source": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "producer": {
+                  "type": "string"
+                },
+                "method": {
+                  "type": "string"
+                },
+                "timestamp": {
+                  "type": "string",
+                  "format": "date-time"
+                }
+              }
+            },
+            "provenance": {
+              "type": "object"
+            }
+          },
+          "allOf": [
+            {
+              "anyOf": [
+                {
+                  "required": ["spec"]
+                },
+                {
+                  "required": ["payload_ref"]
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

@@ -10,7 +10,6 @@ from tm.agents.models import AgentSpec
 from tm.agents.runtime import RuntimeAgent
 from tm.artifacts.normalize import normalize_body
 
-
 SAFE_METHODS = {"GET", "HEAD"}
 
 

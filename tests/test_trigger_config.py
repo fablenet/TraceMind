@@ -14,8 +14,7 @@ from tm.triggers.config import (
 
 
 def test_load_trigger_config_basic() -> None:
-    config_text = textwrap.dedent(
-        """
+    config_text = textwrap.dedent("""
         triggers:
           - id: hourly
             kind: cron
@@ -40,8 +39,7 @@ def test_load_trigger_config_basic() -> None:
             recursive: true
             interval_seconds: 10
             flow_id: flows/import.yaml
-        """
-    )
+        """)
 
     cfg = load_trigger_config_text(config_text)
     assert len(cfg.cron) == 1
@@ -64,8 +62,7 @@ def test_load_trigger_config_basic() -> None:
 
 
 def test_duplicate_id_rejected() -> None:
-    text = textwrap.dedent(
-        """
+    text = textwrap.dedent("""
         triggers:
           - id: a
             kind: cron
@@ -75,20 +72,17 @@ def test_duplicate_id_rejected() -> None:
             kind: webhook
             route: "/a"
             flow_id: flows/a.yaml
-        """
-    )
+        """)
     with pytest.raises(TriggerConfigError):
         load_trigger_config_text(text)
 
 
 def test_missing_fields_raise() -> None:
-    text = textwrap.dedent(
-        """
+    text = textwrap.dedent("""
         triggers:
           - id: fs
             kind: filesystem
             flow_id: flows/fs.yaml
-        """
-    )
+        """)
     with pytest.raises(TriggerConfigError):
         load_trigger_config_text(text)

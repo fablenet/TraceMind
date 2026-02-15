@@ -164,9 +164,7 @@ def test_parse_pdl_assignment_with_override() -> None:
 
 
 def test_parse_wdl_with_triggers() -> None:
-    workflow = parse_wdl_document(
-        textwrap.dedent(
-            """
+    workflow = parse_wdl_document(textwrap.dedent("""
         version: dsl/v0
         workflow: triggered
         triggers:
@@ -178,9 +176,7 @@ def test_parse_wdl_with_triggers() -> None:
         steps:
           - first(op.echo):
               value: 1
-        """
-        )
-    )
+        """))
 
     assert len(workflow.triggers) == 2
     cron_trigger = workflow.triggers[0]

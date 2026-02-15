@@ -16,6 +16,7 @@ Quick usage:
   # 3) Run StaticAnalyzer().check(flow) first to catch basic issues
   # 4) Engine(tracer=AirflowStyleTracer()).run(flow, inputs={...})
 """
+
 # TODO add some unit-tests for all class and methods in this file
 from __future__ import annotations
 

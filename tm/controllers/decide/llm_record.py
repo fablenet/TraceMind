@@ -5,7 +5,6 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Any, Mapping, MutableMapping
 
-
 DEFAULT_RECORD_PATH = Path(".tracemind/controller_decide_records.json")
 
 

@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tracemind.io/schemas/v0.1/kinds/consistency_report.schema.json",
+  "title": "Canonical AST - ConsistencyReport",
+  "allOf": [
+    {
+      "$ref": "../envelope.schema.json"
+    },
+    {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "ConsistencyReport"
+        },
+        "spec": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["artifact_id", "issues"],
+          "properties": {
+            "artifact_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "summary": {
+              "type": "string"
+            },
+            "checks": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["code", "status"],
+                "properties": {
+                  "code": {
+                    "type": "string",
+                    "pattern": "^[A-Z0-9._-]+$"
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": ["pass", "fail", "skip"]
+                  },
+                  "summary": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "issues": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["code", "severity", "summary", "details"],
+                "properties": {
+                  "code": {
+                    "type": "string",
+                    "enum": ["C1", "C2", "C3"]
+                  },
+                  "severity": {
+                    "type": "string",
+                    "enum": ["info", "warning", "error"]
+                  },
+                  "summary": {
+                    "type": "string"
+                  },
+                  "details": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

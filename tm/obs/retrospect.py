@@ -8,7 +8,6 @@ from typing import Dict, List, Tuple
 
 from tm.storage.binlog import BinaryLogReader
 
-
 LabelKey = Tuple[Tuple[str, str], ...]
 
 

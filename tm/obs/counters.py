@@ -7,7 +7,6 @@ from collections import defaultdict
 from dataclasses import dataclass
 from typing import Callable, Dict, Iterable, List, Mapping, MutableMapping, Tuple
 
-
 _LabelKey = Tuple[Tuple[str, str], ...]
 
 

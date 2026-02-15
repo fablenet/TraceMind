@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tracemind.io/schemas/v0.1/kinds/proposal.schema.json",
+  "title": "Canonical AST - Proposal",
+  "allOf": [
+    {
+      "$ref": "../envelope.schema.json"
+    },
+    {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "Proposal"
+        },
+        "spec": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "proposal_id",
+            "target",
+            "target_ref",
+            "rationale",
+            "expected_effect",
+            "changes",
+            "status"
+          ],
+          "properties": {
+            "proposal_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "target": {
+              "type": "string",
+              "enum": ["intent", "policy", "workflow", "config", "guard"]
+            },
+            "target_ref": {
+              "type": "string",
+              "minLength": 1
+            },
+            "patch_kind": {
+              "type": "string"
+            },
+            "rationale": {
+              "type": "string",
+              "minLength": 1
+            },
+            "expected_effect": {
+              "type": "string",
+              "minLength": 1
+            },
+            "changes": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["path", "op"],
+                "properties": {
+                  "path": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "op": {
+                    "type": "string",
+                    "enum": ["add", "remove", "replace", "set"]
+                  },
+                  "value": {},
+                  "note": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "status": {
+              "type": "string",
+              "enum": ["DRAFT", "SUBMITTED", "APPROVED"]
+            },
+            "impacted_intents": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true
+            },
+            "links": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "docs": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "tickets": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

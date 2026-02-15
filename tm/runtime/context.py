@@ -8,7 +8,6 @@ from typing import Any, Callable, Dict, List, Mapping, MutableMapping
 from tm.runtime.evidence import EvidenceRecorder
 from tm.runtime.idempotency import ExecutionIdempotencyGuard
 
-
 RuntimeContextMapping = Mapping[str, Any]
 RuntimeInputs = Mapping[str, Any]
 RuntimeOutputs = Mapping[str, Any]

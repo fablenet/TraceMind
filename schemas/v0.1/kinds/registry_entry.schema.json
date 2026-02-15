@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tracemind.io/schemas/v0.1/kinds/registry_entry.schema.json",
+  "title": "Canonical AST - RegistryEntry",
+  "allOf": [
+    {
+      "$ref": "../envelope.schema.json"
+    },
+    {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "RegistryEntry"
+        },
+        "spec": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "artifact_id",
+            "artifact_type",
+            "body_hash",
+            "path",
+            "version",
+            "created_at",
+            "status"
+          ],
+          "properties": {
+            "artifact_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "artifact_type": {
+              "type": "string",
+              "minLength": 1
+            },
+            "body_hash": {
+              "type": "string",
+              "pattern": "^[0-9a-fA-F]{64}$"
+            },
+            "path": {
+              "type": "string",
+              "minLength": 1
+            },
+            "intent_id": {
+              "type": "string"
+            },
+            "version": {
+              "type": "string",
+              "minLength": 1
+            },
+            "created_at": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "status": {
+              "const": "accepted"
+            },
+            "meta": {
+              "type": "object"
+            }
+          }
+        }
+      }
+    }
+  ]
+}

@@ -11,7 +11,6 @@ from ..idempotency import IdempotencyResult, IdempotencyStore
 from ..task import TaskEnvelope
 from tm.obs import counters
 
-
 LOGGER = logging.getLogger("tm.queue.manager")
 
 

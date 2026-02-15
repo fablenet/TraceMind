@@ -6,7 +6,6 @@ from typing import Any, ClassVar, Mapping, MutableMapping
 
 from tm.agents.models import AgentContract, AgentSpec
 
-
 RuntimeContext = Mapping[str, Any]
 RuntimeInputs = Mapping[str, Any]
 RuntimeOutputs = Mapping[str, Any]

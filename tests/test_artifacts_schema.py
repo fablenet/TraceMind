@@ -11,7 +11,6 @@ from tm.artifacts import (
     validate_workflow_policy,
 )
 
-
 ARTIFACT_ACCEPT_CASES = [
     (
         "IntentSpec",

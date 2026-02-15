@@ -10,7 +10,6 @@ from urllib import request
 from tm.flow.runtime import FlowRunRecord
 from tm.ai.tuner import BanditTuner
 
-
 logger = logging.getLogger(__name__)
 
 

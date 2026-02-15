@@ -7,13 +7,11 @@ from pathlib import Path
 
 def test_lint_detects_cycle(tmp_path):
     flow_file = tmp_path / "flow.yml"
-    flow_file.write_text(
-        """
+    flow_file.write_text("""
 steps:
   a: { next: [b] }
   b: { next: [a] }
-""".strip()
-    )
+""".strip())
     result = subprocess.run(
         [sys.executable, "-m", "tm", "flow", "lint", str(flow_file)],
         capture_output=True,

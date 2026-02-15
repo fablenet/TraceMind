@@ -29,14 +29,12 @@ class SQLiteKStore(KStore):
         )
         self._conn.execute("PRAGMA journal_mode=WAL")
         self._conn.execute("PRAGMA synchronous=NORMAL")
-        self._conn.execute(
-            """
+        self._conn.execute("""
             CREATE TABLE IF NOT EXISTS kstore (
                 key TEXT PRIMARY KEY,
                 value TEXT NOT NULL
             )
-            """
-        )
+            """)
 
     def put(self, key: str, value: Mapping[str, object]) -> None:
         if not isinstance(key, str):

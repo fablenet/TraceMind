@@ -1,0 +1,21 @@
+{
+  "apiVersion": "tracemind.io/v0.1",
+  "kind": "ConsistencyReport",
+  "metadata": {
+    "id": "consistency-bad-severity",
+    "version": "1.0.0"
+  },
+  "spec": {
+    "artifact_id": "intent.tm-int-9999",
+    "issues": [
+      {
+        "code": "C3",
+        "severity": "fatal",
+        "summary": "invariant regression",
+        "details": {
+          "regressions": ["deterministic"]
+        }
+      }
+    ]
+  }
+}

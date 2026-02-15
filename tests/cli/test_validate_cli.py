@@ -26,25 +26,21 @@ def test_validate_cli_detects_conflicts(tmp_path):
 
 def test_validate_cli_reports_lock_conflict(tmp_path):
     flow_a = tmp_path / "fa.yml"
-    flow_a.write_text(
-        """
+    flow_a.write_text("""
 id: flow_a
 steps:
   s1:
     locks:
       - {name: db, mode: exclusive}
-""".strip()
-    )
+""".strip())
     flow_b = tmp_path / "fb.yml"
-    flow_b.write_text(
-        """
+    flow_b.write_text("""
 id: flow_b
 steps:
   t1:
     locks:
       - {name: db, mode: shared}
-""".strip()
-    )
+""".strip())
     result = subprocess.run(
         [
             sys.executable,
@@ -68,16 +64,14 @@ steps:
 
 def test_validate_cli_no_conflict(tmp_path):
     policy = tmp_path / "policy.yml"
-    policy.write_text(
-        """
+    policy.write_text("""
 policy_id: ok
 arms:
   - name: a
     if: {cost: "<=0.5"}
   - name: b
     if: {cost: ">0.5"}
-""".strip()
-    )
+""".strip())
     flow = tmp_path / "flow.yml"
     flow.write_text("id: flow_ok\nsteps: {}\n")
 

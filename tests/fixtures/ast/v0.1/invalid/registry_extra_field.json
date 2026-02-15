@@ -1,0 +1,18 @@
+{
+  "apiVersion": "tracemind.io/v0.1",
+  "kind": "RegistryEntry",
+  "metadata": {
+    "id": "registry-extra-field",
+    "version": "1.0.0"
+  },
+  "spec": {
+    "artifact_id": "plan.tm-int-0001",
+    "artifact_type": "plan",
+    "body_hash": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    "path": "specs/examples/plan.yaml",
+    "version": "v0",
+    "created_at": "2026-02-15T09:00:00Z",
+    "status": "accepted",
+    "extra": "not allowed"
+  }
+}

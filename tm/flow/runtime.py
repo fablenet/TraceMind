@@ -22,7 +22,6 @@ from .spec import FlowSpec, StepDef
 from .trace_store import FlowTraceSink, TraceSpanLike
 from tm.obs.recorder import Recorder
 
-
 logger = logging.getLogger(__name__)
 
 

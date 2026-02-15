@@ -1,0 +1,23 @@
+{
+  "apiVersion": "tracemind.io/v0.1",
+  "kind": "Proposal",
+  "metadata": {
+    "id": "proposal-invalid-status",
+    "version": "1.0.0"
+  },
+  "spec": {
+    "proposal_id": "prop-invalid-status",
+    "target": "policy",
+    "target_ref": "policies/maint/default.json",
+    "rationale": "bad status for testing",
+    "expected_effect": "none",
+    "changes": [
+      {
+        "path": "/spec/rules/0/then/allow",
+        "op": "set",
+        "value": true
+      }
+    ],
+    "status": "PENDING"
+  }
+}

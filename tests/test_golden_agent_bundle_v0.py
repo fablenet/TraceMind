@@ -11,7 +11,6 @@ from tm.artifacts.verify import verify
 from tm.runtime.context import ExecutionContext
 from tm.runtime.executor import AgentBundleExecutor, AgentBundleExecutorError
 
-
 EXAMPLE_PATH = Path("specs/examples/agent_bundle_v0/agent_bundle_demo.yaml")
 
 

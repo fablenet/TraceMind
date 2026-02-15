@@ -12,7 +12,6 @@ from .compiler_flow import FlowCompilation
 from .compiler_policy import PolicyCompilation
 from .ir import WdlInput
 
-
 IR_VERSION = "1.0.0"
 
 

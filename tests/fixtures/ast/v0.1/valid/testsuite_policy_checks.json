@@ -1,0 +1,33 @@
+{
+  "apiVersion": "tracemind.io/v0.1",
+  "kind": "TestSuite",
+  "metadata": {
+    "id": "suite-tm-0002",
+    "version": "1.1.0"
+  },
+  "spec": {
+    "suite_id": "suite-tm-0002",
+    "intent_refs": ["TM-INT-0002"],
+    "stability": "stable",
+    "tests": [
+      {
+        "id": "ts-guard-allow",
+        "description": "Guard allows approved writes",
+        "intent_refs": ["TM-INT-0002"],
+        "stability": "hard",
+        "inputs": {
+          "request": "approved"
+        },
+        "expected": {
+          "result": "allow"
+        }
+      },
+      {
+        "id": "ts-guard-deny",
+        "description": "Guard denies bad writes",
+        "intent_refs": ["TM-INT-0002"],
+        "stability": "compat"
+      }
+    ]
+  }
+}

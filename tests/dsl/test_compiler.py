@@ -9,7 +9,6 @@ from tm.dsl import CompileError, compile_paths, parse_pdl_document, parse_wdl_do
 from tm.dsl.compiler_flow import compile_workflow
 from tm.dsl.compiler_policy import compile_policy
 
-
 WDL_SAMPLE = """
 version: dsl/v0
 workflow: plant-monitor

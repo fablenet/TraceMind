@@ -7,7 +7,6 @@ from pathlib import Path
 
 import pytest
 
-
 pytest.importorskip("networkx", reason="CLI requires networkx dependency")
 pytest.importorskip("yaml", reason="PyYAML required for DSL compilation")
 

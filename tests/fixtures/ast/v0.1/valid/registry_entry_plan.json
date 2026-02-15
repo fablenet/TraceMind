@@ -1,0 +1,26 @@
+{
+  "apiVersion": "tracemind.io/v0.1",
+  "kind": "RegistryEntry",
+  "metadata": {
+    "id": "registry-plan-001",
+    "version": "1.0.0",
+    "trace_links": {
+      "related_intents": ["TM-INT-0001"]
+    }
+  },
+  "spec": {
+    "artifact_id": "plan.tm-int-0001",
+    "artifact_type": "plan",
+    "body_hash": "7f2a8dd2c2cbe2b4c002df0e6f0fe3af00d43c9bdb2b77e3145f9f63b99b5a11",
+    "path": "specs/examples/plan_TM-INT-0001.yaml",
+    "intent_id": "TM-INT-0001",
+    "version": "v0",
+    "created_at": "2026-02-15T09:00:00Z",
+    "status": "accepted",
+    "meta": {
+      "invariant_status": {
+        "deterministic": true
+      }
+    }
+  }
+}

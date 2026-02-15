@@ -14,7 +14,6 @@ import time
 import urllib.request
 from typing import Dict
 
-
 PAYLOADS: list[Dict[str, object]] = [
     {
         "kind": "NFProfile",

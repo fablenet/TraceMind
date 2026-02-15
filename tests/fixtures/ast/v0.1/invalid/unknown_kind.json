@@ -1,0 +1,11 @@
+{
+  "apiVersion": "tracemind.io/v0.1",
+  "kind": "NotRealKind",
+  "metadata": {
+    "id": "unknown-kind",
+    "version": "1.0.0"
+  },
+  "spec": {
+    "note": "this should fail because kind is unsupported"
+  }
+}

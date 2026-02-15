@@ -4,7 +4,6 @@ from pathlib import Path
 import pytest
 from jsonschema import ValidationError, validate
 
-
 SCHEMA_PATH = Path("tm/artifacts/schemas/v0/agent_bundle.json")
 
 

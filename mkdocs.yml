@@ -15,6 +15,10 @@ nav:
   - Architecture:
     - Runtime Overview: docs/architecture/runtime_overview.md
     - ADR-001 LLM Client: docs/architecture/adr-001-llm-client.md
+  - Specs:
+    - K-Ontology & Canonical AST v0.1: docs/specs/k-ontology-v0.1.md
+  - Governance:
+    - Baseline: docs/governance/baseline.md
   - Reference:
     - Error Codes: docs/reference/errors.md
     - Step Types: docs/reference/steps.md

@@ -7,7 +7,6 @@ from tm.dsl import parse_pdl_document
 from tm.dsl.compiler_policy import compile_policy
 from tm.dsl.runtime import call, emit_outputs
 
-
 PDL_SAMPLE = """
 version: pdl/v0
 arms:

@@ -5,7 +5,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-
 SNAPSHOT_NAME = "flow_plan_basic.json"
 
 

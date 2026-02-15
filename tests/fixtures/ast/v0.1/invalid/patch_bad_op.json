@@ -1,0 +1,20 @@
+{
+  "apiVersion": "tracemind.io/v0.1",
+  "kind": "Patch",
+  "metadata": {
+    "id": "patch-bad-op",
+    "version": "1.0.0"
+  },
+  "spec": {
+    "proposal_id": "prop-tighten-guard",
+    "target_ref": "policies/maint/default.json",
+    "changes": [
+      {
+        "path": "/spec/rules/0/then/allow",
+        "op": "toggle",
+        "value": false
+      }
+    ],
+    "applied_at": "2026-02-15T11:00:00Z"
+  }
+}

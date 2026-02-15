@@ -6,7 +6,6 @@ import textwrap
 from dataclasses import dataclass, field
 from typing import Any, Iterable, Mapping, MutableMapping, Sequence
 
-
 try:  # optional dependency
     import yaml  # type: ignore[import-untyped]
 except ModuleNotFoundError:  # pragma: no cover - optional path
@@ -234,9 +233,7 @@ def _coerce_float(value: Any, *, default: float) -> float:
 
 
 def generate_sample_config() -> str:
-    return (
-        textwrap.dedent(
-            """
+    return textwrap.dedent("""
         # TraceMind trigger configuration
         version: 1
         triggers:
@@ -269,7 +266,4 @@ def generate_sample_config() -> str:
             flow_id: flows/file-import.yaml
             input:
               file_path: "{{ path }}"
-        """
-        ).strip()
-        + "\n"
-    )
+        """).strip() + "\n"

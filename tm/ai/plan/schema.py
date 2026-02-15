@@ -4,7 +4,6 @@ import json
 from dataclasses import dataclass, field
 from typing import Any, Dict, Iterable, Mapping, Optional, Sequence, Tuple
 
-
 PLAN_VERSION = "plan.v1"
 
 

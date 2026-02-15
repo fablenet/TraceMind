@@ -8,7 +8,6 @@ from typing import Any, Dict, Mapping, Optional, Protocol
 
 from .evaluator import EvaluationInput, PolicyEvaluationError, evaluate_policy, load_policy as _load_policy_file
 
-
 # ---------------------------------------------------------------------------
 # Engine abstraction
 # ---------------------------------------------------------------------------

@@ -10,7 +10,9 @@ from typing import Any, Mapping
 from tm.artifacts import (
     ArtifactRegistry,
     ArtifactVerificationReport,
+    ConsistencyReport,
     DiffReport,
+    check_consistency,
     diff_artifacts,
     default_registry,
     load_yaml_artifact,
@@ -87,6 +89,26 @@ def _print_lint_issues(issues: list[LintIssue], *, json_output: bool) -> None:
         print(f"[{issue.severity}] {issue.code}: {issue.message}{path}")
 
 
+def _load_registry(path: str | None) -> ArtifactRegistry:
+    if path:
+        return ArtifactRegistry(storage=RegistryStorage(Path(path).expanduser()))
+    return default_registry()
+
+
+def _print_consistency_report(report: ConsistencyReport, *, json_output: bool) -> None:
+    if json_output:
+        payload = {"artifact_id": report.artifact_id, "issues": report.machine_readable}
+        print(json.dumps(payload, indent=2, ensure_ascii=False))
+        return
+    print(f"{report.artifact_id}: {report.human_summary}")
+    for issue in report.issues:
+        print(f"  - [{issue.severity}] {issue.code}: {issue.summary}")
+
+
+def _consistency_has_errors(report: ConsistencyReport) -> bool:
+    return any(issue.severity.lower() == "error" for issue in report.issues)
+
+
 def _cmd_artifacts_verify(args: argparse.Namespace) -> int:
     try:
         artifact = load_yaml_artifact(Path(args.path))
@@ -124,10 +146,17 @@ def _cmd_artifacts_accept(args: argparse.Namespace) -> int:
         print(f"artifacts accept: failed to write output: {exc}", file=sys.stderr)
         return 1
 
-    if args.registry:
-        registry = ArtifactRegistry(storage=RegistryStorage(Path(args.registry).expanduser()))
-    else:
-        registry = default_registry()
+    registry = _load_registry(args.registry)
+
+    if not args.no_consistency_gate:
+        consistency_report = check_consistency(accepted, registry)
+        has_errors = _consistency_has_errors(consistency_report)
+        if consistency_report.issues:
+            _print_consistency_report(consistency_report, json_output=args.json)
+        if has_errors:
+            _print_verification_report(report, json_output=args.json)
+            return 1
+
     registry.add(accepted, output_path)
     _print_verification_report(report, json_output=args.json)
     print(f"accepted artifact written to {output_path}")
@@ -153,6 +182,18 @@ def _cmd_plan_lint(args: argparse.Namespace) -> int:
     return 1 if issues else 0
 
 
+def _cmd_artifacts_consistency(args: argparse.Namespace) -> int:
+    try:
+        artifact = load_yaml_artifact(Path(args.artifact))
+    except Exception as exc:
+        print(f"artifacts consistency: failed to load artifact: {exc}", file=sys.stderr)
+        return 1
+    registry = _load_registry(args.registry)
+    report = check_consistency(artifact, registry)
+    _print_consistency_report(report, json_output=args.json)
+    return 1 if _consistency_has_errors(report) else 0
+
+
 def register_artifacts_commands(subparsers: argparse._SubParsersAction) -> None:
     parser = subparsers.add_parser("artifacts", help="artifact lifecycle tools")
     artifact_sub = parser.add_subparsers(dest="acmd")
@@ -167,6 +208,9 @@ def register_artifacts_commands(subparsers: argparse._SubParsersAction) -> None:
     accept_parser.add_argument("--out", required=True, help="output directory for accepted artifact")
     accept_parser.add_argument("--registry", help="path to registry JSONL file")
     accept_parser.add_argument("--json", action="store_true", help="emit JSON output")
+    accept_parser.add_argument(
+        "--no-consistency-gate", action="store_true", help="skip consistency checks before writing registry"
+    )
     accept_parser.set_defaults(func=_cmd_artifacts_accept)
 
     diff_parser = artifact_sub.add_parser("diff", help="diff two artifacts")
@@ -174,6 +218,12 @@ def register_artifacts_commands(subparsers: argparse._SubParsersAction) -> None:
     diff_parser.add_argument("previous", help="previous artifact path")
     diff_parser.add_argument("--json", action="store_true", help="emit JSON output")
     diff_parser.set_defaults(func=_cmd_artifacts_diff)
+
+    consistency_parser = artifact_sub.add_parser("consistency", help="check registry consistency for an artifact")
+    consistency_parser.add_argument("--artifact", required=True, help="artifact YAML/JSON file to analyze")
+    consistency_parser.add_argument("--registry", help="path to registry JSONL file")
+    consistency_parser.add_argument("--json", action="store_true", help="emit JSON output")
+    consistency_parser.set_defaults(func=_cmd_artifacts_consistency)
 
 
 def register_plan_commands(subparsers: argparse._SubParsersAction) -> None:

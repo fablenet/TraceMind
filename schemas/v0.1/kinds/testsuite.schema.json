@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tracemind.io/schemas/v0.1/kinds/testsuite.schema.json",
+  "title": "Canonical AST - TestSuite",
+  "allOf": [
+    {
+      "$ref": "../envelope.schema.json"
+    },
+    {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "TestSuite"
+        },
+        "spec": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["suite_id", "intent_refs", "tests"],
+          "properties": {
+            "suite_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "intent_refs": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true
+            },
+            "stability": {
+              "type": "string",
+              "enum": ["stable", "unstable"]
+            },
+            "tests": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["id", "intent_refs", "stability"],
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "intent_refs": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "type": "string"
+                    },
+                    "uniqueItems": true
+                  },
+                  "stability": {
+                    "type": "string",
+                    "enum": ["hard", "compat", "evolving"]
+                  },
+                  "inputs": {
+                    "type": "object"
+                  },
+                  "expected": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

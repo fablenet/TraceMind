@@ -4,7 +4,6 @@ import textwrap
 
 from tm.dsl.plan import plan_text, plan_to_dict, plan_to_dot
 
-
 WDL_SAMPLE = """
 version: dsl/v0
 workflow: sample

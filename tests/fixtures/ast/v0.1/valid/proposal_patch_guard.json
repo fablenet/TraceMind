@@ -1,0 +1,33 @@
+{
+  "apiVersion": "tracemind.io/v0.1",
+  "kind": "Proposal",
+  "metadata": {
+    "id": "proposal-tighten-guard",
+    "version": "1.0.0",
+    "trace_links": {
+      "parent_intent": "TM-INT-0002",
+      "related_intents": ["TM-INT-0002"]
+    }
+  },
+  "spec": {
+    "proposal_id": "prop-tighten-guard",
+    "target": "policy",
+    "target_ref": "policies/maint/default.json",
+    "patch_kind": "tighten_guard",
+    "rationale": "Block writes without approval token",
+    "expected_effect": "Raises guard to require explicit approval tag",
+    "changes": [
+      {
+        "path": "/spec/rules/0/then/allow",
+        "op": "set",
+        "value": false,
+        "note": "Default deny"
+      }
+    ],
+    "status": "APPROVED",
+    "impacted_intents": ["TM-INT-0002"],
+    "links": {
+      "docs": ["https://docs.example/policy-hardening"]
+    }
+  }
+}

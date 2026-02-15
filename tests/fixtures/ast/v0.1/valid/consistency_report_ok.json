@@ -1,0 +1,25 @@
+{
+  "apiVersion": "tracemind.io/v0.1",
+  "kind": "ConsistencyReport",
+  "metadata": {
+    "id": "consistency.intent.tm-int-0001",
+    "version": "1.0.0"
+  },
+  "spec": {
+    "artifact_id": "intent.tm-int-0001",
+    "summary": "no regressions detected",
+    "checks": [
+      {
+        "code": "C1",
+        "status": "pass",
+        "summary": "body hash unchanged"
+      },
+      {
+        "code": "C3",
+        "status": "pass",
+        "summary": "no invariant regressions"
+      }
+    ],
+    "issues": []
+  }
+}

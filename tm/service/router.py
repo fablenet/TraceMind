@@ -15,7 +15,6 @@ from tm.ai.tuner import BanditTuner
 from tm.obs.recorder import Recorder
 from .binding import BindingSpec, Operation, _coerce_operation
 
-
 logger = logging.getLogger(__name__)
 
 

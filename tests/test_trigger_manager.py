@@ -13,13 +13,11 @@ from tm.triggers.config import load_trigger_config_text
 from tm.triggers.manager import TriggerEvent, TriggerManager
 from tm.triggers.runner import TriggerRuntime
 
-
 pytestmark = pytest.mark.asyncio
 
 
 async def test_cron_trigger_emits_events() -> None:
-    cfg_text = textwrap.dedent(
-        """
+    cfg_text = textwrap.dedent("""
         triggers:
           - id: short
             kind: cron
@@ -27,8 +25,7 @@ async def test_cron_trigger_emits_events() -> None:
             flow_id: flows/demo.yaml
             input:
               greeting: "{{ trigger_id }}"
-        """
-    )
+        """)
     config = load_trigger_config_text(cfg_text)
     events: list[TriggerEvent] = []
     stop_event = asyncio.Event()
@@ -55,8 +52,7 @@ async def test_cron_trigger_emits_events() -> None:
 
 async def test_trigger_runtime_webhook(tmp_path) -> None:
     port = _free_port()
-    cfg_text = textwrap.dedent(
-        f"""
+    cfg_text = textwrap.dedent(f"""
         triggers:
           - id: hook
             kind: webhook
@@ -70,8 +66,7 @@ async def test_trigger_runtime_webhook(tmp_path) -> None:
             input:
               body: "{{ body }}"
               method: "{{ method }}"
-        """
-    )
+        """)
     config = load_trigger_config_text(cfg_text)
     queue_dir = tmp_path / "queue"
     idem_dir = tmp_path / "idem"

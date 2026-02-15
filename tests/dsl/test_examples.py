@@ -6,7 +6,6 @@ import pytest
 
 from tm.dsl import compile_paths
 
-
 pytest.importorskip("yaml", reason="PyYAML required for DSL compilation")
 
 
