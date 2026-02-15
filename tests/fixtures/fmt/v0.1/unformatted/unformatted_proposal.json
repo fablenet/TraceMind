@@ -1,0 +1,36 @@
+{
+  "spec": {
+    "status": "APPROVED",
+    "target": "policy",
+    "impacted_intents": ["TM-INT-0002", "TM-INT-0001", "TM-INT-0002"],
+    "changes": [
+      {
+        "value": false,
+        "path": "/spec/rules/0/then/allow",
+        "op": "set",
+        "note": "default deny"
+      },
+      {
+        "note": "record audit tag",
+        "op": "add",
+        "path": "/spec/rules/0/then/reason",
+        "value": "requires_approval"
+      }
+    ],
+    "proposal_id": "prop-tighten-guard",
+    "target_ref": "policies/maint/default.json",
+    "expected_effect": "Block writes without approval token",
+    "rationale": "Prevent unauthorized state writes",
+    "patch_kind": "tighten_guard"
+  },
+  "metadata": {
+    "version": "1.0.0",
+    "trace_links": {
+      "related_intents": ["TM-INT-0003", "TM-INT-0001", "TM-INT-0001"],
+      "parent_intent": "TM-INT-0009"
+    },
+    "id": "proposal-tighten-guard"
+  },
+  "kind": "Proposal",
+  "apiVersion": "tracemind.io/v0.1"
+}

@@ -2,8 +2,25 @@
 
 ## Dev setup
 - Python 3.11+
-- `pytest -q`
 - Ensure repo root is on `PYTHONPATH` (pytest.ini or env var)
+
+### Reproducible local venv
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -U pip
+python -m pip install -e .
+python -m pip install -r requirements-dev.txt
+pytest -q
+```
+
+### CLI smoke checks (no runtime execution)
+
+```bash
+python -m tm fmt --help
+python -m tm validate --help
+```
 
 ## Branching
 - Feature branches like `feat/<area>-<slug>`

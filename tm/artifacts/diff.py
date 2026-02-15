@@ -4,8 +4,9 @@ import difflib
 from dataclasses import dataclass
 from typing import Sequence
 
+from tm.ast.canonical import canonical_dumps
+
 from .models import Artifact
-from .normalize import normalize_body
 
 
 @dataclass
@@ -33,8 +34,8 @@ class DiffReport:
 
 
 def diff_artifacts(current: Artifact, previous: Artifact) -> DiffReport:
-    current_canonical = normalize_body(current.body_raw)
-    previous_canonical = normalize_body(previous.body_raw)
+    current_canonical = canonical_dumps(current.body_raw)
+    previous_canonical = canonical_dumps(previous.body_raw)
     diff_lines = list(
         difflib.unified_diff(
             previous_canonical.splitlines(),

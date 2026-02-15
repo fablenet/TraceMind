@@ -1,0 +1,30 @@
+{
+  "metadata": {
+    "version": "1.0.0",
+    "id": "suite-policy-guard",
+    "trace_links": {
+      "related_intents": ["TM-INT-0004", "TM-INT-0002", "TM-INT-0002"]
+    }
+  },
+  "spec": {
+    "tests": [
+      {
+        "stability": "compat",
+        "intent_refs": ["TM-INT-0002", "TM-INT-0001", "TM-INT-0002"],
+        "id": "ts-z",
+        "description": "second by id, first in sequence"
+      },
+      {
+        "id": "ts-a",
+        "intent_refs": ["TM-INT-0003", "TM-INT-0002", "TM-INT-0003"],
+        "stability": "hard",
+        "description": "first by id, second in sequence"
+      }
+    ],
+    "suite_id": "suite-policy-guard",
+    "intent_refs": ["TM-INT-0003", "TM-INT-0001", "TM-INT-0003"],
+    "stability": "stable"
+  },
+  "apiVersion": "tracemind.io/v0.1",
+  "kind": "TestSuite"
+}
