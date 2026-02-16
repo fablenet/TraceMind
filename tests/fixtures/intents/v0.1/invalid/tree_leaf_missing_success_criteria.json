@@ -1,0 +1,12 @@
+{
+  "kind": "IntentTree",
+  "intents": [
+    {
+      "id": "TM-INT-LEAF",
+      "title": "Leaf without success criteria",
+      "trace_links": {
+        "related_intents": []
+      }
+    }
+  ]
+}

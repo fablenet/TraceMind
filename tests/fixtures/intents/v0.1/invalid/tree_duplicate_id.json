@@ -1,0 +1,25 @@
+{
+  "kind": "IntentTree",
+  "intents": [
+    {
+      "id": "TM-INT-DUP",
+      "title": "First",
+      "trace_links": {
+        "related_intents": []
+      },
+      "success_criteria": {
+        "type": "leaf"
+      }
+    },
+    {
+      "id": "TM-INT-DUP",
+      "title": "Second",
+      "trace_links": {
+        "related_intents": []
+      },
+      "success_criteria": {
+        "type": "leaf"
+      }
+    }
+  ]
+}

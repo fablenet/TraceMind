@@ -1,0 +1,26 @@
+{
+  "kind": "IntentTree",
+  "intents": [
+    {
+      "id": "TM-INT-ROOT",
+      "title": "Root",
+      "trace_links": {
+        "related_intents": []
+      },
+      "success_criteria": {
+        "type": "leaf"
+      }
+    },
+    {
+      "id": "TM-INT-C",
+      "title": "Child with missing parent",
+      "trace_links": {
+        "parent_intent": "TM-INT-NOT-EXIST",
+        "related_intents": []
+      },
+      "success_criteria": {
+        "type": "leaf"
+      }
+    }
+  ]
+}

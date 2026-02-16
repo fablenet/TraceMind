@@ -1,0 +1,23 @@
+{
+  "kind": "PolicySet",
+  "rules": [
+    {
+      "id": "r-1",
+      "priority": 10,
+      "intent_refs": ["TM-INT-LEAF-A"],
+      "when": {
+        "==": [{"var": "obs.temp"}, 1]
+      },
+      "then": []
+    },
+    {
+      "id": "r-2",
+      "priority": 5,
+      "intent_refs": ["TM-INT-NOT-EXIST"],
+      "when": {
+        "==": [{"var": "obs.temp"}, 2]
+      },
+      "then": []
+    }
+  ]
+}

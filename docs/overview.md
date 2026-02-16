@@ -14,6 +14,7 @@ This doc set focuses on running, extending, and operating TraceMind Core Runtime
 - **[K-Ontology & Canonical AST v0.1](specs/k-ontology-v0.1.md)** — Three-layer ontology (data/meta/meta-meta), canonical AST envelope, type catalog, and canonicalization rules for M1.
 - **[Policy determinism (M2 · ISSUE-003)](policy_determinism.md)** — Immutable rules for policy evaluation order, conflict strategy (first-wins), condition AST semantics, and canonical action_log.
 - **[Trace format v0.1](specs/trace-format-v0.1.md)** — Trace JSONL event structure (ts, obs, state, context), replay output (one action_log per event, M2 canonical), replay diff (added/removed/changed, summary by intent_refs or rule_id).
+- **[Intent tree v0.1](specs/intent-tree-v0.1.md)** — Intent node minimum fields (id, title/summary, trace_links), single authority for parent-child (trace_links.parent_intent), topology (acyclic, parent exists), leaf definition and requirements (success_criteria, tests coverage via M5.2).
 
 ## Governance Baseline (default constraints)
 

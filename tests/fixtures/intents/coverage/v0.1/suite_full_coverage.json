@@ -1,0 +1,28 @@
+{
+  "apiVersion": "tracemind.io/v0.1",
+  "kind": "TestSuite",
+  "metadata": {
+    "id": "suite.full"
+  },
+  "spec": {
+    "suite_id": "suite.full",
+    "intent_refs": ["TM-INT-ROOT", "TM-INT-LEAF-A", "TM-INT-LEAF-B"],
+    "tests": [
+      {
+        "id": "test.cover.root",
+        "intent_refs": ["TM-INT-ROOT"],
+        "stability": "hard"
+      },
+      {
+        "id": "test.cover.a",
+        "intent_refs": ["TM-INT-LEAF-A"],
+        "stability": "hard"
+      },
+      {
+        "id": "test.cover.b",
+        "intent_refs": ["TM-INT-LEAF-B"],
+        "stability": "hard"
+      }
+    ]
+  }
+}

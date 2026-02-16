@@ -1,0 +1,133 @@
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from pathlib import Path
+from typing import Any, Mapping
+
+from tm.intent.coverage import compute_intents_coverage
+from tm.intent.tree_validator import validate_intent_tree
+from tm.policy.deterministic import canonical_json_bytes
+from tm.utils.yaml import import_yaml
+
+yaml = import_yaml()
+
+
+def _load_mapping(path: Path) -> Mapping[str, Any]:
+    text = path.read_text(encoding="utf-8")
+    suffix = path.suffix.lower()
+    if suffix in {".yaml", ".yml"}:
+        if yaml is None:
+            raise ValueError("PyYAML is required to read YAML files")
+        payload = yaml.safe_load(text)
+    else:
+        payload = json.loads(text)
+    if not isinstance(payload, Mapping):
+        raise ValueError(f"{path}: expected mapping document")
+    return payload
+
+
+def _cmd_intents_validate(args: argparse.Namespace) -> int:
+    file_path = Path(args.file).expanduser()
+    try:
+        payload = _load_mapping(file_path)
+    except Exception as exc:
+        print(f"intents validate: failed to load {file_path}: {exc}", file=sys.stderr)
+        return 1
+
+    issues = validate_intent_tree(payload)
+    intents_count = 0
+    if isinstance(payload.get("intents"), list):
+        intents_count = len(payload["intents"])
+    elif isinstance(payload.get("spec"), Mapping):
+        spec = payload["spec"]
+        if isinstance(spec.get("intents"), list):
+            intents_count = len(spec["intents"])
+        elif isinstance(spec.get("spec"), Mapping) and isinstance(spec["spec"].get("intents"), list):
+            intents_count = len(spec["spec"]["intents"])
+    rows = [
+        {
+            "file": str(file_path),
+            "intent_id": issue.intent_id,
+            "path": issue.path,
+            "message": issue.message,
+        }
+        for issue in issues
+    ]
+    if args.json:
+        stream = sys.stderr
+        if rows:
+            print(f"{file_path}: invalid ({len(rows)} errors, intents={intents_count})", file=stream)
+        else:
+            print(f"{file_path}: valid (intents={intents_count})", file=stream)
+        print(json.dumps(rows, indent=2, sort_keys=True, ensure_ascii=False))
+    else:
+        if not rows:
+            print(f"{file_path}: valid (intents={intents_count})")
+        else:
+            print(f"{file_path}: invalid ({len(rows)} errors, intents={intents_count})")
+            for row in rows:
+                iid = row["intent_id"] if row["intent_id"] is not None else "-"
+                print(f"  {row['path']} [intent={iid}] {row['message']}")
+    return 0 if not rows else 1
+
+
+def _cmd_intents_coverage(args: argparse.Namespace) -> int:
+    intents_path = Path(args.intents).expanduser()
+    tests_path = Path(args.tests).expanduser()
+    policy_path = Path(args.policy).expanduser() if args.policy else None
+    try:
+        outcome = compute_intents_coverage(
+            intents_path=intents_path,
+            tests_path=tests_path,
+            policy_path=policy_path,
+        )
+    except Exception as exc:
+        print(f"intents coverage: {exc}", file=sys.stderr)
+        return 1
+
+    summary = outcome.report["summary"]
+    print(
+        "coverage summary: "
+        f"intents={summary['total_intents']} leaf={summary['leaf_intents']} "
+        f"tests={summary['tests_scanned']} uncovered_leaf={summary['uncovered_leaf_intents']} "
+        f"warnings={summary['warnings']}",
+        file=sys.stderr,
+    )
+    payload = canonical_json_bytes(outcome.report)
+    sys.stdout.buffer.write(payload + b"\n")
+    return outcome.exit_code
+
+
+def register_intents_commands(subparsers: argparse._SubParsersAction) -> None:
+    parser = subparsers.add_parser("intents", help="intent tree topology validation")
+    intents_sub = parser.add_subparsers(dest="intents_cmd")
+    intents_sub.required = True
+
+    validate_parser = intents_sub.add_parser(
+        "validate",
+        help="validate intent tree ids/topology/leaf requirements",
+    )
+    validate_parser.add_argument("file", help="intent tree AST path (.json, .yaml, .yml)")
+    validate_parser.add_argument("--json", action="store_true", help="emit machine-readable validation errors")
+    validate_parser.set_defaults(func=_cmd_intents_validate)
+
+    coverage_parser = intents_sub.add_parser(
+        "coverage",
+        help="compute intent coverage from TestSuite intent_refs",
+    )
+    coverage_parser.add_argument("--intents", required=True, help="intent tree AST path (.json, .yaml, .yml)")
+    coverage_parser.add_argument(
+        "--tests",
+        required=True,
+        help="TestSuite path or directory (.json, .yaml, .yml)",
+    )
+    coverage_parser.add_argument(
+        "--policy",
+        help="optional policy AST path (.json, .yaml, .yml) to include rule intent_refs stats",
+    )
+    coverage_parser.set_defaults(func=_cmd_intents_coverage)
+
+
+__all__ = ["register_intents_commands"]

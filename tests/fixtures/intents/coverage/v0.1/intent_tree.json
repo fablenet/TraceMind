@@ -1,0 +1,34 @@
+{
+  "kind": "IntentTree",
+  "intents": [
+    {
+      "id": "TM-INT-ROOT",
+      "title": "Root",
+      "trace_links": {
+        "related_intents": []
+      }
+    },
+    {
+      "id": "TM-INT-LEAF-A",
+      "title": "Leaf A",
+      "trace_links": {
+        "parent_intent": "TM-INT-ROOT",
+        "related_intents": ["TM-INT-LEAF-B"]
+      },
+      "success_criteria": {
+        "type": "leaf"
+      }
+    },
+    {
+      "id": "TM-INT-LEAF-B",
+      "title": "Leaf B",
+      "trace_links": {
+        "parent_intent": "TM-INT-ROOT",
+        "related_intents": ["TM-INT-LEAF-A"]
+      },
+      "success_criteria": {
+        "type": "leaf"
+      }
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "kind": "IntentTree",
+  "intents": [
+    {
+      "id": "TM-INT-A",
+      "title": "A",
+      "trace_links": {
+        "parent_intent": "TM-INT-B",
+        "related_intents": []
+      }
+    },
+    {
+      "id": "TM-INT-B",
+      "title": "B",
+      "trace_links": {
+        "parent_intent": "TM-INT-A",
+        "related_intents": []
+      }
+    }
+  ]
+}
