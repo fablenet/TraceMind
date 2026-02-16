@@ -29,7 +29,7 @@ def _load_mapping(path: Path) -> Mapping[str, Any]:
 
 
 def _cmd_intents_validate(args: argparse.Namespace) -> int:
-    file_path = Path(args.file).expanduser()
+    file_path = Path(args.intents).expanduser()
     try:
         payload = _load_mapping(file_path)
     except Exception as exc:
@@ -46,30 +46,62 @@ def _cmd_intents_validate(args: argparse.Namespace) -> int:
             intents_count = len(spec["intents"])
         elif isinstance(spec.get("spec"), Mapping) and isinstance(spec["spec"].get("intents"), list):
             intents_count = len(spec["spec"]["intents"])
-    rows = [
-        {
-            "file": str(file_path),
-            "intent_id": issue.intent_id,
-            "path": issue.path,
-            "message": issue.message,
-        }
-        for issue in issues
-    ]
-    if args.json:
-        stream = sys.stderr
-        if rows:
-            print(f"{file_path}: invalid ({len(rows)} errors, intents={intents_count})", file=stream)
+    rows = sorted(
+        [
+            {
+                "intent_id": issue.intent_id,
+                "path": issue.path,
+                "message": issue.message,
+            }
+            for issue in issues
+        ],
+        key=lambda item: ((item["intent_id"] or ""), item["path"], item["message"]),
+    )
+    reason_counts: dict[str, int] = {
+        "duplicate_id": 0,
+        "parent": 0,
+        "cycle": 0,
+        "related": 0,
+        "leaf_success_criteria": 0,
+        "other": 0,
+    }
+    for row in rows:
+        message = row["message"]
+        if "duplicate id" in message:
+            reason_counts["duplicate_id"] += 1
+        elif "cycle detected" in message:
+            reason_counts["cycle"] += 1
+        elif "parent_intent" in message or "roots" in message or "root intent" in message:
+            reason_counts["parent"] += 1
+        elif "related" in message:
+            reason_counts["related"] += 1
+        elif "success_criteria" in message:
+            reason_counts["leaf_success_criteria"] += 1
         else:
-            print(f"{file_path}: valid (intents={intents_count})", file=stream)
-        print(json.dumps(rows, indent=2, sort_keys=True, ensure_ascii=False))
+            reason_counts["other"] += 1
+
+    summary = {
+        "file": str(file_path),
+        "intents": intents_count,
+        "errors": len(rows),
+        "reasons": {k: v for k, v in reason_counts.items() if v > 0},
+    }
+    report = {"summary": summary, "errors": rows}
+    print(
+        f"validate summary: file={file_path} intents={intents_count} errors={len(rows)} "
+        f"reasons={summary['reasons'] or {'none': 0}}",
+        file=sys.stderr,
+    )
+    if args.json:
+        sys.stdout.buffer.write(canonical_json_bytes(report) + b"\n")
     else:
         if not rows:
-            print(f"{file_path}: valid (intents={intents_count})")
+            print(f"{file_path}: valid")
         else:
-            print(f"{file_path}: invalid ({len(rows)} errors, intents={intents_count})")
+            print(f"{file_path}: invalid ({len(rows)} errors)")
             for row in rows:
                 iid = row["intent_id"] if row["intent_id"] is not None else "-"
-                print(f"  {row['path']} [intent={iid}] {row['message']}")
+                print(f"  intent={iid} path={row['path']} message={row['message']}")
     return 0 if not rows else 1
 
 
@@ -109,8 +141,8 @@ def register_intents_commands(subparsers: argparse._SubParsersAction) -> None:
         "validate",
         help="validate intent tree ids/topology/leaf requirements",
     )
-    validate_parser.add_argument("file", help="intent tree AST path (.json, .yaml, .yml)")
-    validate_parser.add_argument("--json", action="store_true", help="emit machine-readable validation errors")
+    validate_parser.add_argument("--intents", required=True, help="intent tree AST path (.json, .yaml, .yml)")
+    validate_parser.add_argument("--json", action="store_true", help="emit canonical machine-readable validation")
     validate_parser.set_defaults(func=_cmd_intents_validate)
 
     coverage_parser = intents_sub.add_parser(

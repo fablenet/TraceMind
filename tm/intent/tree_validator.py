@@ -93,6 +93,7 @@ def validate_intent_tree(payload: Mapping[str, Any]) -> list[IntentTreeIssue]:
     parent_of: dict[str, str] = {}
     children_of: dict[str, set[str]] = {intent_id: set() for intent_id in existing_ids}
 
+    no_parent_nodes: list[tuple[str, str]] = []
     for intent_id, rows in id_to_rows.items():
         if len(rows) != 1:
             continue
@@ -119,6 +120,8 @@ def validate_intent_tree(payload: Mapping[str, Any]) -> list[IntentTreeIssue]:
             else:
                 parent_of[intent_id] = parent
                 children_of[parent].add(intent_id)
+        else:
+            no_parent_nodes.append((intent_id, f"{link_path}.parent_intent"))
 
         related = links.get("related_intents", [])
         if not isinstance(related, Sequence) or isinstance(related, (str, bytes, bytearray)):
@@ -157,6 +160,33 @@ def validate_intent_tree(payload: Mapping[str, Any]) -> list[IntentTreeIssue]:
                         message=f"related intent '{related_id}' does not exist",
                     )
                 )
+
+    no_parent_nodes.sort(key=lambda item: item[0])
+    if not no_parent_nodes:
+        issues.append(
+            IntentTreeIssue(
+                intent_id=None,
+                path="intents",
+                message="missing root intent: exactly one intent without parent_intent is required",
+            )
+        )
+    elif len(no_parent_nodes) > 1:
+        root_ids = [item[0] for item in no_parent_nodes]
+        issues.append(
+            IntentTreeIssue(
+                intent_id=None,
+                path="intents",
+                message=f"multiple roots detected: {', '.join(root_ids)}",
+            )
+        )
+        for intent_id, parent_path in no_parent_nodes[1:]:
+            issues.append(
+                IntentTreeIssue(
+                    intent_id=intent_id,
+                    path=parent_path,
+                    message="non-root intent must define parent_intent",
+                )
+            )
 
     state: dict[str, int] = {}
     stack: list[str] = []
@@ -206,8 +236,8 @@ def validate_intent_tree(payload: Mapping[str, Any]) -> list[IntentTreeIssue]:
     return sorted(
         issues,
         key=lambda item: (
-            item.path,
             item.intent_id or "",
+            item.path,
             item.message,
         ),
     )

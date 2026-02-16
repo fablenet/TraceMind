@@ -15,7 +15,7 @@ def _fixture(*parts: str) -> Path:
 
 
 def _run_validate(path: Path, *, as_json: bool = False) -> subprocess.CompletedProcess[str]:
-    cmd = [sys.executable, "-m", "tm", "intents", "validate", str(path)]
+    cmd = [sys.executable, "-m", "tm", "intents", "validate", "--intents", str(path)]
     if as_json:
         cmd.append("--json")
     return subprocess.run(
@@ -50,8 +50,7 @@ def test_intents_validate_json_output_shape() -> None:
     result = _run_validate(target, as_json=True)
     assert result.returncode == 1
     payload = json.loads(result.stdout)
-    assert isinstance(payload, list)
-    assert payload
-    row = payload[0]
-    assert set(row.keys()) == {"file", "intent_id", "path", "message"}
-    assert row["file"].endswith("tree_cycle.json")
+    assert set(payload.keys()) == {"summary", "errors"}
+    assert payload["errors"]
+    row = payload["errors"][0]
+    assert set(row.keys()) == {"intent_id", "path", "message"}
