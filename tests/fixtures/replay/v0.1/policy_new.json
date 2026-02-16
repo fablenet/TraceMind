@@ -1,0 +1,20 @@
+{
+  "rules": [
+    {
+      "id": "r-high-temp",
+      "priority": 20,
+      "when": {">": [{"var": "obs.temp"}, 30]},
+      "then": [
+        {"type": "set", "actuator": "fan.mode", "value": "turbo"}
+      ]
+    },
+    {
+      "id": "r-auto-pump",
+      "priority": 10,
+      "when": {"==": [{"var": "state.mode"}, "AUTO"]},
+      "then": [
+        {"type": "set", "actuator": "pump.state", "value": "on"}
+      ]
+    }
+  ]
+}

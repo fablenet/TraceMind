@@ -18,6 +18,7 @@ nav:
   - Specs:
     - K-Ontology & Canonical AST v0.1: docs/specs/k-ontology-v0.1.md
     - Policy determinism (M2 · ISSUE-003): docs/policy_determinism.md
+    - Trace format v0.1: docs/specs/trace-format-v0.1.md
   - Governance:
     - Baseline: docs/governance/baseline.md
     - Regression rules (硬约束 #3): docs/regression_rules.md

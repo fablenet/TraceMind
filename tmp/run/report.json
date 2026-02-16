@@ -2,9 +2,9 @@
   "bundle_id": "tm-bundle/demo",
   "artifact_id": "tm-agent-bundle-demo",
   "body_hash": "bdeab08ee77ebd923f7feb75a5aab60cf41f14ab0a9c6ff450415dd0a5d5464f",
-  "start_time": "2026-02-16T03:53:37.796464+00:00",
-  "end_time": "2026-02-16T03:53:37.796483+00:00",
-  "duration_seconds": 1.9e-05,
+  "start_time": "2026-02-16T04:18:27.097394+00:00",
+  "end_time": "2026-02-16T04:18:27.097418+00:00",
+  "duration_seconds": 2.4e-05,
   "success": false,
   "error": "agent 'tm-agent/noop:0.1' is not registered",
   "steps": [
