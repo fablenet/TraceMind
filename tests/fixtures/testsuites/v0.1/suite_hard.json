@@ -1,0 +1,49 @@
+{
+  "apiVersion": "tracemind.io/v0.1",
+  "kind": "TestSuite",
+  "metadata": {
+    "id": "suite-hard-v01",
+    "version": "1.0.0"
+  },
+  "spec": {
+    "suite_id": "suite-hard-v01",
+    "intent_refs": ["TM-INT-0100"],
+    "tests": [
+      {
+        "id": "hard-pass-exact",
+        "intent_refs": ["TM-INT-0100"],
+        "stability": "hard",
+        "inputs": {
+          "obs": {"temp": 80},
+          "state": {"mode": "AUTO"}
+        },
+        "expected": {
+          "mode": "exact",
+          "action_log": {
+            "actions": [
+              {
+                "rule_id": "rule-high",
+                "action": {"type": "set", "actuator": "cooler.mode", "value": "high"},
+                "applied": true
+              },
+              {
+                "rule_id": "rule-low",
+                "action": {"type": "set", "actuator": "cooler.mode", "value": "eco"},
+                "applied": false
+              },
+              {
+                "rule_id": "rule-mid",
+                "action": {"type": "set", "actuator": "pump.state", "value": "on"},
+                "applied": true
+              }
+            ],
+            "final_patch": {
+              "cooler.mode": "high",
+              "pump.state": "on"
+            }
+          }
+        }
+      }
+    ]
+  }
+}

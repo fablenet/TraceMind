@@ -8,6 +8,7 @@ jobs:
   lint-and-test:
     name: tests (${{ matrix.os }} / py${{ matrix.python }})
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
@@ -37,8 +38,29 @@ jobs:
       - name: Mypy
         run: python -m mypy tm/kstore tm/validate
 
-      - name: Pytest
-        run: python -m pytest -q
+      - name: Pytest gate (critical)
+        shell: bash
+        run: |
+          if command -v timeout >/dev/null 2>&1; then
+            timeout 10m python -m pytest -q \
+              tests/test_policy_engine_deterministic.py \
+              tests/test_gate_runner.py \
+              tests/cli/test_cli_help_no_networkx.py
+          else
+            python -m pytest -q \
+              tests/test_policy_engine_deterministic.py \
+              tests/test_gate_runner.py \
+              tests/cli/test_cli_help_no_networkx.py
+          fi
+
+      - name: Pytest full
+        shell: bash
+        run: |
+          if command -v timeout >/dev/null 2>&1; then
+            timeout 10m python -m pytest -q
+          else
+            python -m pytest -q
+          fi
 
       - name: Run M1 demos (Linux only)
         if: runner.os == 'Linux'
@@ -50,6 +72,7 @@ jobs:
   no-sqlite:
     name: tests (NO_SQLITE)
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     env:
       NO_SQLITE: "1"
     steps:
@@ -67,8 +90,13 @@ jobs:
           python -m pip install pytest pytest-asyncio pytest-cov PyYAML croniter
           python -m pip install -e .
 
-      - name: Pytest
-        run: python -m pytest -q
+      - name: Pytest gate (critical)
+        shell: bash
+        run: timeout 10m python -m pytest -q tests/test_policy_engine_deterministic.py tests/test_gate_runner.py tests/cli/test_cli_help_no_networkx.py
+
+      - name: Pytest full
+        shell: bash
+        run: timeout 10m python -m pytest -q
 
   daemon-smoke:
     name: daemon smoke (linux)

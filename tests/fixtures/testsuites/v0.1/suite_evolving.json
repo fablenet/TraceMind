@@ -1,0 +1,38 @@
+{
+  "apiVersion": "tracemind.io/v0.1",
+  "kind": "TestSuite",
+  "metadata": {
+    "id": "suite-evolving-v01",
+    "version": "1.0.0"
+  },
+  "spec": {
+    "suite_id": "suite-evolving-v01",
+    "intent_refs": ["TM-INT-0102"],
+    "tests": [
+      {
+        "id": "evolving-soft-fail",
+        "intent_refs": ["TM-INT-0102"],
+        "stability": "evolving",
+        "inputs": {
+          "obs": {"temp": 80},
+          "state": {"mode": "AUTO"}
+        },
+        "expected": {
+          "mode": "exact",
+          "action_log": {
+            "actions": [
+              {
+                "rule_id": "rule-high",
+                "action": {"type": "set", "actuator": "cooler.mode", "value": "eco"},
+                "applied": true
+              }
+            ],
+            "final_patch": {
+              "cooler.mode": "eco"
+            }
+          }
+        }
+      }
+    ]
+  }
+}

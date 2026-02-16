@@ -17,3 +17,5 @@ This doc set focuses on running, extending, and operating TraceMind Core Runtime
 ## Governance Baseline (default constraints)
 
 Contributors must follow the [Governance Baseline](governance/baseline.md) and the [Non-negotiable Governance Rules](CONTRIBUTING.md#non-negotiable-governance-rules) in CONTRIBUTING. These rules cover AI→candidate→verify→accept flows, explicit artifact diffs, patch lifecycle, intent traceability, and the ban on runtime self-authorization.
+
+- **[Regression rules (硬约束 #3)](regression_rules.md)** — hard/compat/evolving definitions, change advancement rules (old tests must pass; else major bump + rationale + new tests), and how to run regression/gate (`pytest -q tests/`, `tm tests run`, `tm gate run` + report.json).

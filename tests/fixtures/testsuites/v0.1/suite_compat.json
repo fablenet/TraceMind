@@ -1,0 +1,43 @@
+{
+  "apiVersion": "tracemind.io/v0.1",
+  "kind": "TestSuite",
+  "metadata": {
+    "id": "suite-compat-v01",
+    "version": "1.0.0"
+  },
+  "spec": {
+    "suite_id": "suite-compat-v01",
+    "intent_refs": ["TM-INT-0101"],
+    "tests": [
+      {
+        "id": "compat-pass-contains",
+        "intent_refs": ["TM-INT-0101"],
+        "stability": "compat",
+        "inputs": {
+          "obs": {"temp": 80},
+          "state": {"mode": "AUTO"}
+        },
+        "expected": {
+          "mode": "contains",
+          "action_log": {
+            "actions": [
+              {
+                "rule_id": "rule-high",
+                "action": {"type": "set", "actuator": "cooler.mode"},
+                "applied": true
+              },
+              {
+                "rule_id": "rule-mid",
+                "action": {"type": "set", "actuator": "pump.state"},
+                "applied": true
+              }
+            ],
+            "final_patch": {
+              "cooler.mode": "high"
+            }
+          }
+        }
+      }
+    ]
+  }
+}

@@ -593,7 +593,8 @@ class FlowRuntime:
     async def _invoke_callable(self, fn: Callable[..., Any], *args: Any) -> Any:
         if inspect.iscoroutinefunction(fn):
             return await fn(*args)
-        result = await asyncio.to_thread(fn, *args)
+        # Keep hook execution deterministic and avoid threadpool stalls in tests/CI.
+        result = fn(*args)
         if inspect.isawaitable(result):
             return await result  # pragma: no cover
         return result

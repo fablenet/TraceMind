@@ -4,6 +4,8 @@
 
 This document defines the deterministic semantics of policy evaluation and the canonical `action_log` format. All implementations (runtime, tests, tooling) must conform.
 
+**Summary (five invariants):** (1) **Rule order** — priority DESC, then id ASC; actions within a rule keep original order. (2) **Conflict** — same actuator multiple `set`: first-wins, later entries recorded with `applied: false`. (3) **Missing field** — missing var path resolves to `None`. (4) **Type mismatch** — `None` or incompatible types in comparisons yield `False`. (5) **Canonical action_log** — JSON with `sort_keys=True`, fixed separators `(",", ":")`; array order by evaluation only; no non-deterministic fields.
+
 ---
 
 ## 1. Rule evaluation order

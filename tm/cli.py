@@ -68,6 +68,7 @@ from tm.cli.patch import register_patch_commands
 from tm.cli.rerun import register_rerun_command
 from tm.cli.run_cli import register_run_commands
 from tm.cli.controller_cli import register_controller_commands
+from tm.cli.tests_runner import register_tests_commands
 from tm.verify import (
     Explorer,
     TraceMindAdapter,
@@ -1502,6 +1503,7 @@ def _build_parser() -> argparse.ArgumentParser:
     register_plan_commands(sub)
     register_run_commands(sub)
     register_controller_commands(sub)
+    register_tests_commands(sub)
 
     return parser
 

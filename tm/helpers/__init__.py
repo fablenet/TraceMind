@@ -42,8 +42,7 @@ def _resolve_callable(ref: Any) -> Callable:
 async def _maybe_call(func: Callable, *args, **kwargs):
     if inspect.iscoroutinefunction(func):
         return await func(*args, **kwargs)
-    loop = asyncio.get_running_loop()
-    return await loop.run_in_executor(None, lambda: func(*args, **kwargs))
+    return func(*args, **kwargs)
 
 
 # ---------------------------------------------------------------------------

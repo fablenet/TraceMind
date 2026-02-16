@@ -1,0 +1,28 @@
+{
+  "rules": [
+    {
+      "id": "rule-high",
+      "priority": 20,
+      "when": {">": [{"var": "obs.temp"}, 70]},
+      "then": [
+        {"type": "set", "actuator": "cooler.mode", "value": "high"}
+      ]
+    },
+    {
+      "id": "rule-low",
+      "priority": 10,
+      "when": {">": [{"var": "obs.temp"}, 70]},
+      "then": [
+        {"type": "set", "actuator": "cooler.mode", "value": "eco"}
+      ]
+    },
+    {
+      "id": "rule-mid",
+      "priority": 10,
+      "when": {"==": [{"var": "state.mode"}, "AUTO"]},
+      "then": [
+        {"type": "set", "actuator": "pump.state", "value": "on"}
+      ]
+    }
+  ]
+}
