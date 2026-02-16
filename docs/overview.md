@@ -17,6 +17,12 @@ This doc set focuses on running, extending, and operating TraceMind Core Runtime
 - **[Intent tree v0.1](specs/intent-tree-v0.1.md)** — Intent node minimum fields (id, title/summary, trace_links), single authority for parent-child (trace_links.parent_intent), topology (acyclic, parent exists), leaf definition and requirements (success_criteria, tests coverage via M5.2).
 - **[Proposal v0.1](specs/proposal-v0.1.md)** — Proposal ontology and semantic boundaries (M6.1): envelope (M1.1 canonical AST), minimal spec fields (impacted_intents, patch_refs, testsuite_refs, risk, summary, rationale), lint vs schema boundaries, relationship to gate (M6.2). [Example](specs/examples/proposal_v0.1.json).
 
+## Constitution entry (ISSUE-001)
+
+- **[Semantics](semantics.md)** — Canonical AST, rendering (parse/print), deterministic policy (priority/id, first-wins, applied:false), tests gate (hard/compat/evolving).
+- **[Decisions](decisions.md)** — Governance baseline, gate pipeline order, what can evolve (hard/compat/evolving + major bump).
+- **[Intent](intent.md)** — Intent tree structure, single root / acyclic, leaf success_criteria and tests coverage, validate & coverage commands.
+
 ## Governance Baseline (default constraints)
 
 Contributors must follow the [Governance Baseline](governance/baseline.md) and the [Non-negotiable Governance Rules](CONTRIBUTING.md#non-negotiable-governance-rules) in CONTRIBUTING. These rules cover AI→candidate→verify→accept flows, explicit artifact diffs, patch lifecycle, intent traceability, and the ban on runtime self-authorization.

@@ -24,6 +24,10 @@ nav:
   - Governance:
     - Baseline: docs/governance/baseline.md
     - Regression rules (硬约束 #3): docs/regression_rules.md
+  - Constitution (ISSUE-001):
+    - Semantics: docs/semantics.md
+    - Decisions: docs/decisions.md
+    - Intent: docs/intent.md
   - Reference:
     - Error Codes: docs/reference/errors.md
     - Step Types: docs/reference/steps.md
