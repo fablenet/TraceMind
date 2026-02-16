@@ -60,6 +60,7 @@ def test_run_detached_enqueues_task(
     rc = tm_cli.main(
         [
             "run",
+            "recipe",
             str(recipe_path),
             "--detached",
             "--queue",
