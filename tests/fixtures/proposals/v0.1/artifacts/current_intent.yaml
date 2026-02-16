@@ -1,0 +1,28 @@
+envelope:
+  artifact_id: intent-cur
+  status: accepted
+  artifact_type: intent
+  version: "1.0.0"
+  created_by: tester
+  created_at: "2026-02-16T00:00:00Z"
+  body_hash: newhash
+  envelope_hash: newenvhash
+  meta:
+    invariant_status:
+      inv.core: false
+body:
+  intent_id: TM-INT-1001
+  title: Intent v2
+  context: ctx
+  goal: goal
+  non_goals: []
+  actors: []
+  inputs: []
+  outputs: []
+  constraints: []
+  success_metrics: []
+  risks: []
+  assumptions: []
+  trace_links:
+    parent_intent: null
+    related_intents: []

@@ -1,0 +1,12 @@
+{
+  "apiVersion": "tracemind.io/v0.1",
+  "kind": "Proposal",
+  "metadata": {"id": "prop-ok", "version": "1.0.0"},
+  "spec": {
+    "impacted_intents": ["TM-INT-2001"],
+    "patch_refs": ["patch_ok.json"],
+    "testsuite_refs": ["testsuite_ok.json"],
+    "risk": "low",
+    "summary": "ok"
+  }
+}

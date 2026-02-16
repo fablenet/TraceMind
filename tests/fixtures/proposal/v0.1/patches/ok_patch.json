@@ -1,0 +1,5 @@
+{
+  "op": "set",
+  "path": "/spec/rules/0/then/allow",
+  "value": false
+}

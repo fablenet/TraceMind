@@ -1,0 +1,14 @@
+{
+  "api_version": "tracemind.io/v0.1",
+  "kind": "TestSuite",
+  "metadata": {
+    "id": "testsuite-XXX",
+    "version": "1.0.0",
+    "trace_links": {
+      "related_intents": []
+    }
+  },
+  "spec": {
+    "tests": []
+  }
+}

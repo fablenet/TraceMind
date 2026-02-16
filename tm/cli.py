@@ -71,6 +71,9 @@ from tm.cli.run_cli import register_run_commands
 from tm.cli.replay import register_replay_commands
 from tm.cli.controller_cli import register_controller_commands
 from tm.cli.tests_runner import register_tests_commands
+from tm.cli.proposal import register_proposal_commands
+from tm.cli.gate import register_gate_commands
+from tm.cli.ci import register_ci_commands
 from tm.verify import (
     Explorer,
     TraceMindAdapter,
@@ -1508,6 +1511,9 @@ def _build_parser() -> argparse.ArgumentParser:
     register_replay_commands(sub)
     register_controller_commands(sub)
     register_tests_commands(sub)
+    register_proposal_commands(sub)
+    register_gate_commands(sub)
+    register_ci_commands(sub)
 
     return parser
 

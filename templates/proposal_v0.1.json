@@ -1,0 +1,19 @@
+{
+  "api_version": "tracemind.io/v0.1",
+  "kind": "Proposal",
+  "metadata": {
+    "id": "prop-XXX",
+    "version": "1.0.0",
+    "trace_links": {
+      "related_intents": []
+    }
+  },
+  "spec": {
+    "impacted_intents": [],
+    "patch_refs": [],
+    "testsuite_refs": [],
+    "risk": "low",
+    "summary": "",
+    "rationale": ""
+  }
+}

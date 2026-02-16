@@ -1,0 +1,20 @@
+{
+  "apiVersion": "tracemind.io/v0.1",
+  "kind": "Patch",
+  "metadata": {
+    "id": "patch-001",
+    "version": "1.0.0"
+  },
+  "spec": {
+    "proposal_id": "prop-001",
+    "target_ref": "policy_pass.json",
+    "changes": [
+      {
+        "path": "/rules/0/then/0/value",
+        "op": "set",
+        "value": "high"
+      }
+    ],
+    "applied_at": "2026-02-16T00:00:00Z"
+  }
+}

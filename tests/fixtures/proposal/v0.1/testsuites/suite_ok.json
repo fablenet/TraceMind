@@ -1,0 +1,18 @@
+{
+  "apiVersion": "tracemind.io/v0.1",
+  "kind": "TestSuite",
+  "metadata": {
+    "id": "suite.ok"
+  },
+  "spec": {
+    "suite_id": "suite.ok",
+    "intent_refs": ["TM-INT-0001"],
+    "tests": [
+      {
+        "id": "test.ok.1",
+        "intent_refs": ["TM-INT-0001"],
+        "stability": "hard"
+      }
+    ]
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "apiVersion": "tracemind.io/v0.1",
+  "kind": "Proposal",
+  "metadata": {
+    "id": "prop-bad-refs",
+    "version": "1.0.0"
+  },
+  "spec": {
+    "impacted_intents": ["TM-INT-0001"],
+    "patch_refs": ["patches/not_found.json"],
+    "testsuite_refs": ["testsuites/not_found.json"],
+    "risk": "low",
+    "summary": "missing refs"
+  }
+}

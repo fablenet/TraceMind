@@ -1,0 +1,19 @@
+{
+  "api_version": "tracemind.io/v0.1",
+  "kind": "Proposal",
+  "metadata": {
+    "id": "prop-001",
+    "version": "1.0.0",
+    "trace_links": {
+      "related_intents": ["TM-INT-0001"]
+    }
+  },
+  "spec": {
+    "impacted_intents": ["TM-INT-0001", "TM-INT-0002"],
+    "patch_refs": ["patches/tighten-guard-v1.yaml"],
+    "testsuite_refs": ["tests/policy/test_tighten_guard.py"],
+    "risk": "medium",
+    "summary": "Tighten guard on state:workload writes",
+    "rationale": "Current guard allows writes that violate intent TM-INT-0001 constraints. This patch adds an additional policy rule to block unsafe writes."
+  }
+}

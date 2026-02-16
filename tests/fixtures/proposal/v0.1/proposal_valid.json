@@ -1,0 +1,15 @@
+{
+  "apiVersion": "tracemind.io/v0.1",
+  "kind": "Proposal",
+  "metadata": {
+    "id": "prop-valid",
+    "version": "1.0.0"
+  },
+  "spec": {
+    "impacted_intents": ["TM-INT-0001"],
+    "patch_refs": ["patches/ok_patch.json"],
+    "testsuite_refs": ["testsuites/suite_ok.json"],
+    "risk": "medium",
+    "summary": "valid proposal"
+  }
+}

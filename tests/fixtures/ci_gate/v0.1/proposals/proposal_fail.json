@@ -1,0 +1,12 @@
+{
+  "apiVersion": "tracemind.io/v0.1",
+  "kind": "Proposal",
+  "metadata": {"id": "prop-fail", "version": "1.0.0"},
+  "spec": {
+    "impacted_intents": [],
+    "patch_refs": ["patch_ok.json"],
+    "testsuite_refs": ["testsuite_ok.json"],
+    "risk": "low",
+    "summary": "fail step3"
+  }
+}

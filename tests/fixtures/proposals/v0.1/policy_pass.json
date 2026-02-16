@@ -1,0 +1,12 @@
+{
+  "rules": [
+    {
+      "id": "rule-high",
+      "priority": 20,
+      "when": {">": [{"var": "obs.temp"}, 70]},
+      "then": [
+        {"type": "set", "actuator": "cooler.mode", "value": "high"}
+      ]
+    }
+  ]
+}

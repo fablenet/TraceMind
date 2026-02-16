@@ -1,0 +1,16 @@
+{
+  "api_version": "tracemind.io/v0.1",
+  "kind": "Patch",
+  "metadata": {
+    "id": "patch-XXX",
+    "version": "1.0.0",
+    "trace_links": {
+      "related_intents": []
+    }
+  },
+  "spec": {
+    "target": "policy",
+    "target_ref": "",
+    "operations": []
+  }
+}
