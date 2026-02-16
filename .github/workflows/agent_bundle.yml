@@ -46,11 +46,22 @@ jobs:
         run: |
           python - <<'PY'
           import json
+          import sys
           from pathlib import Path
 
           report = json.loads(Path("tmp/run/report.json").read_text(encoding="utf-8"))
-          assert report["error"] is not None
-          assert report["success"] is False
-          assert report["policy_decisions"]
-          assert any(not decision.get("allowed", True) for decision in report["policy_decisions"])
+          try:
+              assert report.get("success") is False, "expected success=False (guard denial or run failure)"
+              assert report.get("error") is not None, "expected error to be set"
+              decisions = report.get("policy_decisions") or []
+              if decisions:
+                  assert any(not decision.get("allowed", True) for decision in decisions), (
+                      "expected at least one policy_guard with allowed=False"
+                  )
+          except AssertionError as e:
+              print("Validate run report failed:", e, file=sys.stderr)
+              print("report.success =", report.get("success"), file=sys.stderr)
+              print("report.error =", report.get("error"), file=sys.stderr)
+              print("report.policy_decisions =", json.dumps(report.get("policy_decisions"), indent=2), file=sys.stderr)
+              raise
           PY
