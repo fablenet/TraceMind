@@ -147,6 +147,9 @@ def _cmd_run_bundle(args: argparse.Namespace) -> int:
     except AgentBundleExecutorError as exc:
         success = False
         error = str(exc)
+    except Exception as exc:
+        success = False
+        error = str(exc)
     end = datetime.now(timezone.utc)
     report = _build_run_report(artifact, context, start, end, success, error)
     try:
