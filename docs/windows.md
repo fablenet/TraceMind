@@ -36,22 +36,8 @@ pip install -e ".[yaml,prom,mcp,retrospect,cron,dev]"
 
 ---
 
-## fablenet-backbone-go（Go 项目）
-
-- **Go 测试**：在 Windows 上可直接运行，无需 WSL：
-  ```powershell
-  cd E:\src\fable-net\fablenet-backbone-go
-  go test ./...
-  ```
-- **core deps 检查**：CI 里用的 `tools/check_core_deps.sh` 是 bash 脚本。在 Windows 上可以：
-  - 用 **Git Bash** 执行：`bash tools/check_core_deps.sh`
-  - 或安装 WSL 后在该目录下执行同一命令
-
----
-
 ## 总结
 
 | 项目 | Windows 注意点 |
 |------|----------------|
 | TraceMind | 用 `venv\Scripts\Activate.ps1` 激活；测试用 `python -m pytest` 或 `run_tests.ps1` |
-| fablenet-backbone-go | `go test ./...` 直接可用；`check_core_deps.sh` 需 Git Bash 或 WSL |
