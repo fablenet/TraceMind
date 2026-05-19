@@ -43,7 +43,6 @@ from tm.kb import (
 )
 from tm.patterns import load_seed_patterns
 
-
 # ─── Fixtures shared across cases ─────────────────────────────────
 
 

@@ -56,7 +56,7 @@ class _PlanRequest:
             sections.append("Constraints: " + json.dumps(self.constraints, ensure_ascii=False, separators=(",", ":")))
         sections.append("Allowed tools: " + (", ".join(self.allow_tools) if self.allow_tools else "none"))
         sections.append("Allowed flows: " + (", ".join(self.allow_flows) if self.allow_flows else "none"))
-        sections.append("Rules: steps[*].ref must exist in the allow list." " Use compact JSON with double quotes.")
+        sections.append("Rules: steps[*].ref must exist in the allow list. Use compact JSON with double quotes.")
         return "\n\n".join(sections)
 
 
@@ -190,7 +190,6 @@ async def run(params: dict[str, Any], *, flow_id: Optional[str] = None, step_id:
 
     overall_start = time.perf_counter()
     while attempt < attempts:
-
         attempt += 1
         try:
             call_result = await client.call(

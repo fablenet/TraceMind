@@ -20,7 +20,6 @@ from tm.artifacts import (
     validate_property_pattern_spec,
 )
 
-
 _SCHEMAS_DIR = Path(__file__).resolve().parents[1] / "tm" / "artifacts" / "schemas" / "v0"
 
 

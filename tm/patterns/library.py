@@ -42,7 +42,6 @@ from typing import Any, Iterable, List, Mapping
 
 from tm.artifacts import PropertyPatternBody, validate_property_pattern_spec
 
-
 SEED_ROOT: Path = Path(__file__).resolve().parent / "seed"
 
 

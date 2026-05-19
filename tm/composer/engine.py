@@ -242,7 +242,7 @@ class WorkflowComposer:
                     )
                 guard = guard_opts_sorted[0]
                 guard_entries[guard["name"]] = guard
-            step_id = f"{template['id']}.step{idx+1}"
+            step_id = f"{template['id']}.step{idx + 1}"
             step_record: dict[str, Any] = {
                 "step_id": step_id,
                 "capability_id": cap_id,

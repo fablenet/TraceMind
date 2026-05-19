@@ -88,7 +88,7 @@ def create_llm_router(manager: WorkspaceManager) -> APIRouter:
 
     @router.get("/configs", response_model=list[LlmConfigInfo])
     def list_configs(
-        workspace_id: str | None = Query(None, description="Workspace that owns the config")
+        workspace_id: str | None = Query(None, description="Workspace that owns the config"),
     ) -> list[LlmConfigInfo]:
         workspace = _resolve_workspace(manager, workspace_id)
         registry = LlmConfigRegistry(workspace.paths.llm_configs)

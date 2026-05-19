@@ -42,7 +42,6 @@ from tm.patterns import (
     load_seed_patterns,
 )
 
-
 # ─── Fixtures ─────────────────────────────────────────────────────
 
 

@@ -303,8 +303,7 @@ class TestPatternCustomLibrary:
     def test_use_custom_directory(self, tmp_path: Path) -> None:
         f = tmp_path / "custom.yaml"
         f.write_text(
-            textwrap.dedent(
-                """
+            textwrap.dedent("""
                 pattern_id: custom.example
                 category: liveness
                 title: Custom pattern
@@ -313,8 +312,7 @@ class TestPatternCustomLibrary:
                   - name: target
                     type: ctl_predicate
                     required: true
-                """
-            ).strip(),
+                """).strip(),
             encoding="utf-8",
         )
         result = _run(
@@ -334,8 +332,7 @@ class TestPatternCustomLibrary:
     def test_instantiate_from_custom_directory(self, tmp_path: Path) -> None:
         f = tmp_path / "custom.yaml"
         f.write_text(
-            textwrap.dedent(
-                """
+            textwrap.dedent("""
                 pattern_id: custom.example
                 category: safety
                 title: Custom safety
@@ -344,8 +341,7 @@ class TestPatternCustomLibrary:
                   - name: pred
                     type: ctl_predicate
                     required: true
-                """
-            ).strip(),
+                """).strip(),
             encoding="utf-8",
         )
         result = _run(

@@ -1483,7 +1483,7 @@ def _build_parser() -> argparse.ArgumentParser:
             sys.exit(1)
         if not args.yes:
             prompt = (
-                f"Permanently purge {len(matches)} entr{'y' if len(matches)==1 else 'ies'}? type 'purge' to confirm: "
+                f"Permanently purge {len(matches)} entr{'y' if len(matches) == 1 else 'ies'}? type 'purge' to confirm: "
             )
             response = input(prompt)
             if response.strip().lower() != "purge":

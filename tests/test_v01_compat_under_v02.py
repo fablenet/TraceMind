@@ -22,7 +22,6 @@ from tm.artifacts import (
     validate_workflow_policy,
 )
 
-
 _SCHEMAS_DIR = Path(__file__).resolve().parents[1] / "tm" / "artifacts" / "schemas" / "v0"
 
 

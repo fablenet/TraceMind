@@ -32,7 +32,6 @@ from tm.artifacts.registry import ArtifactRegistry
 from tm.artifacts.storage import RegistryStorage
 from tm.kb import build_case_corpus
 
-
 # ─── Fixture helpers ──────────────────────────────────────────────
 
 

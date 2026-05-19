@@ -28,7 +28,7 @@ def test_plan_infers_missing_nodes():
 
 def test_plan_handles_large_linear_dag():
     size = 10_000
-    graph = {f"n{i}": [f"n{i+1}"] for i in range(size - 1)}
+    graph = {f"n{i}": [f"n{i + 1}"] for i in range(size - 1)}
     graph[f"n{size - 1}"] = []
     result = plan(graph)
     assert result.stats.nodes == size

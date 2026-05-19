@@ -26,7 +26,6 @@ from typing import Any, Dict, Iterable, List, Mapping, Protocol, runtime_checkab
 
 from .fake_apiserver import KubeApiError, KubeResource
 
-
 # ─── Server protocol (so anything quack-compatible plugs in) ──────
 
 

@@ -51,7 +51,6 @@ from tm.controllers.models import (
 
 from .case_corpus import Case, CaseCorpus, CaseEvidence
 
-
 # ─── Feedback signal dataclass ────────────────────────────────────
 
 

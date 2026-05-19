@@ -21,7 +21,6 @@ from tm.artifacts import PropertyPatternBody
 from tm.patterns import SEED_ROOT, PatternLibrary, load_seed_patterns
 from tm.patterns.library import _load_pattern_body
 
-
 EXPECTED_SEED_IDS = {
     "safety.no_x_amplifies_y",
     "liveness.eventually_x_holds",
@@ -159,8 +158,7 @@ class TestPatternLibraryDuplicateDetection:
     def test_duplicate_id_rejected(self, tmp_path: Path) -> None:
         a = tmp_path / "a.yaml"
         b = tmp_path / "b.yaml"
-        seed = textwrap.dedent(
-            """
+        seed = textwrap.dedent("""
             pattern_id: dup.example
             category: safety
             title: A
@@ -169,8 +167,7 @@ class TestPatternLibraryDuplicateDetection:
               - name: dummy
                 type: ctl_predicate
                 required: true
-            """
-        ).strip()
+            """).strip()
         a.write_text(seed, encoding="utf-8")
         b.write_text(seed.replace("title: A", "title: B"), encoding="utf-8")
         with pytest.raises(ValueError, match="duplicate pattern_id"):
@@ -181,8 +178,7 @@ class TestPatternLibraryCustomDirectory:
     def test_load_from_arbitrary_directory(self, tmp_path: Path) -> None:
         f = tmp_path / "x.yaml"
         f.write_text(
-            textwrap.dedent(
-                """
+            textwrap.dedent("""
                 pattern_id: custom.pat
                 category: liveness
                 title: Custom
@@ -191,8 +187,7 @@ class TestPatternLibraryCustomDirectory:
                   - name: dummy
                     type: ctl_predicate
                     required: false
-                """
-            ).strip(),
+                """).strip(),
             encoding="utf-8",
         )
         lib = PatternLibrary.from_directory(tmp_path)
@@ -219,16 +214,14 @@ class TestPatternBodyLoaderValidation:
     def test_missing_required_field_rejected(self, tmp_path: Path) -> None:
         f = tmp_path / "bad.yaml"
         f.write_text(
-            textwrap.dedent(
-                """
+            textwrap.dedent("""
                 pattern_id: bad.missing_template
                 category: safety
                 title: Bad
                 slots:
                   - name: x
                     type: ctl_predicate
-                """
-            ).strip(),
+                """).strip(),
             encoding="utf-8",
         )
         with pytest.raises(Exception):

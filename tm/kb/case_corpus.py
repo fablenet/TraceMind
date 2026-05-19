@@ -46,7 +46,6 @@ from tm.artifacts import (
 )
 from tm.artifacts.registry import ArtifactRegistry
 
-
 ArtifactLoader = Callable[[Path], Artifact]
 
 

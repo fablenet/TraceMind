@@ -305,7 +305,7 @@ def _attach_controller_routes(router: APIRouter, config: ServerConfig, workspace
 
     @router.get("/reports")
     def list_reports(
-        workspace_id: str | None = Query(None, description="Workspace whose runs should be listed")
+        workspace_id: str | None = Query(None, description="Workspace whose runs should be listed"),
     ) -> List[Dict[str, Any]]:
         workspace = _resolve_workspace(workspace_manager, workspace_id)
         runs_root = workspace.paths.reports / "runs"

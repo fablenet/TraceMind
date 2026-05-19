@@ -27,7 +27,6 @@ from tm.patterns import (
 )
 from tm.verify.ctl import parse_expr
 
-
 # ─── instantiate_pattern (pure formula resolution) ────────────────
 
 
@@ -355,9 +354,9 @@ class TestNonLLMPathInvariants:
             if src:
                 with open(src, encoding="utf-8") as f:
                     text = f.read()
-                assert forbidden_module not in text, (
-                    f"tm.patterns.instantiate refers to forbidden module {forbidden_module}"
-                )
+                assert (
+                    forbidden_module not in text
+                ), f"tm.patterns.instantiate refers to forbidden module {forbidden_module}"
         # Ensure no provider got into the runtime path via side effects
         # of importing tm.patterns
         assert sys is not None  # keep sys reference (no-op)

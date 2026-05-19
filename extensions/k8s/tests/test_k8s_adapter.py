@@ -23,7 +23,6 @@ from extensions.k8s import (
     KubeResource,
 )
 
-
 # ─── FakeKubeApiServer ────────────────────────────────────────────
 
 

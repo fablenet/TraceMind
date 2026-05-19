@@ -62,7 +62,6 @@ from tm.agents.models import (
 from tm.patterns import PatternInstance
 from tm.verify.spec import PropertySpec
 
-
 # ─── Compilation result aggregate ─────────────────────────────────
 
 

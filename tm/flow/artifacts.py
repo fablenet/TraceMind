@@ -92,7 +92,7 @@ def _build_dot(spec: FlowSpec, nodes: Iterable[dict], edges: Iterable[dict]) -> 
         attrs = [f'label="{label}"']
         if entry and name == entry:
             attrs.append("shape=doubleoctagon")
-        lines.append(f"  \"{name}\" [{', '.join(attrs)}];")
+        lines.append(f'  "{name}" [{", ".join(attrs)}];')
 
     for edge in edges:
         src = edge.get("from")

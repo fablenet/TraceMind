@@ -38,7 +38,6 @@ from tm.steps.ai_propose_pattern import (
     run,
 )
 
-
 # ─── Fixtures ─────────────────────────────────────────────────────
 
 
@@ -289,6 +288,6 @@ class TestNonLLMPathInvariants:
             r"import tm\.ai\.providers",
         ]
         for forbidden in forbidden_patterns:
-            assert not re.search(forbidden, source), (
-                f"ai_propose_pattern.py must not import {forbidden!r} — the non-LLM path must stay LLM-free"
-            )
+            assert not re.search(
+                forbidden, source
+            ), f"ai_propose_pattern.py must not import {forbidden!r} — the non-LLM path must stay LLM-free"
