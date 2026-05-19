@@ -22,6 +22,10 @@ jobs:
           python -m pip install pytest pytest-asyncio pytest-cov ruff black mypy PyYAML croniter
           python -m pip install -e .
 
+      - name: Core independence check (Phase 5 Stage 5-2 task 2.8)
+        shell: bash
+        run: python scripts/check_core_independence.py
+
       - name: Run pytest with timeout/fallback
         shell: bash
         run: |

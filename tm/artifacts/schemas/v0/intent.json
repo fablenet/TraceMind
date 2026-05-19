@@ -23,6 +23,16 @@
       },
       "required": ["related_intents"],
       "additionalProperties": false
+    },
+    "property_pattern_refs": {
+      "type": "array",
+      "items": {"type": "string"}
+    },
+    "slot_fills": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object"
+      }
     }
   },
   "required": ["intent_id", "title", "context", "goal"],

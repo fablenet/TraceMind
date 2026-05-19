@@ -65,6 +65,11 @@ _INTENT_SPEC_SCHEMA: Schema = {
         "constraints": {"type": "array", "items": _CONSTRAINT_SCHEMA},
         "preferences": {"type": "array", "items": _PREFERENCE_SCHEMA},
         "context_refs": {"type": "array", "items": {"type": "string"}},
+        "property_pattern_refs": {"type": "array", "items": {"type": "string"}},
+        "slot_fills": {
+            "type": "object",
+            "additionalProperties": {"type": "object"},
+        },
         "metadata": {"type": "object"},
     },
     "required": ["intent_id", "version", "goal"],
@@ -382,6 +387,146 @@ _PATCH_PROPOSAL_SCHEMA: Schema = {
     "additionalProperties": False,
 }
 
+_PROPERTY_PATTERN_SLOT_SCHEMA: Schema = {
+    "type": "object",
+    "properties": {
+        "name": {"type": "string", "pattern": r"^[a-z][a-z0-9_]*$"},
+        "type": {"type": "string", "minLength": 1},
+        "description": {"type": "string"},
+        "required": {"type": "boolean"},
+    },
+    "required": ["name", "type"],
+    "additionalProperties": False,
+}
+
+_PROPERTY_PATTERN_COUNTEREXAMPLE_SCHEMA: Schema = {
+    "type": "object",
+    "properties": {
+        "description": {"type": "string", "minLength": 1},
+        "scenario": {"type": "string"},
+    },
+    "required": ["description"],
+    "additionalProperties": False,
+}
+
+_PROPERTY_PATTERN_SPEC_SCHEMA: Schema = {
+    "type": "object",
+    "properties": {
+        "pattern_id": {"type": "string", "pattern": _IDENTIFIER_PATTERN},
+        "category": {"type": "string", "enum": ["safety", "liveness", "fairness"]},
+        "title": {"type": "string", "minLength": 1},
+        "description": {"type": "string"},
+        "formula_template": {"type": "string", "minLength": 1},
+        "slots": {"type": "array", "items": _PROPERTY_PATTERN_SLOT_SCHEMA, "minItems": 1},
+        "applicable_conditions": {"type": "array", "items": {"type": "string"}},
+        "counterexamples": {"type": "array", "items": _PROPERTY_PATTERN_COUNTEREXAMPLE_SCHEMA},
+        "metadata": {"type": "object"},
+    },
+    "required": ["pattern_id", "category", "title", "formula_template", "slots"],
+    "additionalProperties": False,
+}
+
+_KRIPKE_VERDICT_SCHEMA: Schema = {
+    "type": "object",
+    "properties": {
+        "verified": {"type": "boolean"},
+        "properties_checked": {"type": "integer", "minimum": 0},
+        "properties_passed": {"type": "integer", "minimum": 0},
+        "failed_properties": {"type": "array", "items": {"type": "string"}},
+        "counterexamples": {"type": "array", "items": {"type": "object"}},
+    },
+    "required": ["verified", "properties_checked", "properties_passed"],
+    "additionalProperties": False,
+}
+
+_EVIDENCE_ENTRY_SCHEMA: Schema = {
+    "type": "object",
+    "properties": {
+        "source": {"type": "string", "minLength": 1},
+        "event_type": {"type": "string", "minLength": 1},
+        "data": {"type": "object"},
+        "timestamp": _DATE_TIME_SCHEMA,
+    },
+    "required": ["source", "event_type"],
+    "additionalProperties": False,
+}
+
+_PROOF_REPORT_SPEC_SCHEMA: Schema = {
+    "type": "object",
+    "properties": {
+        "report_id": {"type": "string", "minLength": 1},
+        "intent_id": {"type": "string", "minLength": 1},
+        "cycle_id": {"type": "string", "minLength": 1},
+        "pre_snapshot": {"type": "object"},
+        "post_snapshot": {"type": "object"},
+        "execution_summary": {"type": "object"},
+        "kripke_verdict": _KRIPKE_VERDICT_SCHEMA,
+        "evidence_chain": {"type": "array", "items": _EVIDENCE_ENTRY_SCHEMA},
+        "policy_decisions": {"type": "array", "items": {"type": "object"}},
+        "overall_verdict": {"type": "string", "enum": ["pass", "fail", "inconclusive"]},
+        "verdict_reason": {"type": "string"},
+        "created_at": _DATE_TIME_SCHEMA,
+        "report_hash": {"type": "string"},
+        "peer_node_id": {"type": "string"},
+        "peer_chain_ref": {"type": "string"},
+        "metadata": {"type": "object"},
+    },
+    "required": ["report_id", "intent_id", "cycle_id", "overall_verdict"],
+    "additionalProperties": False,
+}
+
+_ESCALATION_VERDICT_SCHEMA: Schema = {
+    "type": "object",
+    "properties": {
+        "kpi": {"type": "string", "minLength": 1},
+        "trend": {
+            "type": "string",
+            "enum": ["improving", "stalled", "worsening", "insufficient_data"],
+        },
+        "converged": {"type": "boolean"},
+        "delta": {"type": "number"},
+        "values": {"type": "array", "items": {"type": "number"}},
+        "reason": {"type": "string"},
+    },
+    "required": ["kpi", "trend"],
+    "additionalProperties": False,
+}
+
+_ESCALATION_REPORT_SPEC_SCHEMA: Schema = {
+    "type": "object",
+    "properties": {
+        "report_id": {"type": "string", "minLength": 1},
+        "timestamp": _DATE_TIME_SCHEMA,
+        "severity": {"type": "string", "enum": ["info", "warning", "critical"]},
+        "intent_ref": {"type": "string", "minLength": 1},
+        "verdicts": {"type": "array", "items": _ESCALATION_VERDICT_SCHEMA},
+        "kpi_history_count": {"type": "integer", "minimum": 0},
+        "recent_rules_fired": {"type": "array", "items": {"type": "string"}},
+        "recent_errors": {"type": "array", "items": {"type": "string"}},
+        "gap_summary": {"type": "string"},
+        "suggested_actions": {
+            "type": "array",
+            "items": {
+                "type": "string",
+                "enum": [
+                    "tighten_thresholds",
+                    "add_new_rule",
+                    "update_knowledge",
+                    "retrain_model",
+                    "human_review",
+                    "recompile_bundle",
+                    "adjust_kripke_properties",
+                ],
+            },
+        },
+        "counterexample": {"type": ["object", "null"]},
+        "peer_node_id": {"type": "string"},
+        "metadata": {"type": "object"},
+    },
+    "required": ["report_id", "timestamp", "severity", "intent_ref"],
+    "additionalProperties": False,
+}
+
 SCHEMAS: Mapping[str, Schema] = {
     "IntentSpec": _INTENT_SPEC_SCHEMA,
     "CapabilitySpec": _CAPABILITY_SPEC_SCHEMA,
@@ -390,4 +535,7 @@ SCHEMAS: Mapping[str, Schema] = {
     "ExecutionTrace": _EXECUTION_TRACE_SCHEMA,
     "IntegratedStateReport": _INTEGRATED_STATE_REPORT_SCHEMA,
     "PatchProposal": _PATCH_PROPOSAL_SCHEMA,
+    "PropertyPatternSpec": _PROPERTY_PATTERN_SPEC_SCHEMA,
+    "ProofReportSpec": _PROOF_REPORT_SPEC_SCHEMA,
+    "EscalationReportSpec": _ESCALATION_REPORT_SPEC_SCHEMA,
 }

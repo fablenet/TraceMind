@@ -63,6 +63,18 @@ def validate_patch_proposal(payload: Mapping[str, Any]) -> None:
     _validate_named("PatchProposal", payload)
 
 
+def validate_property_pattern_spec(payload: Mapping[str, Any]) -> None:
+    _validate_named("PropertyPatternSpec", payload)
+
+
+def validate_proof_report_spec(payload: Mapping[str, Any]) -> None:
+    _validate_named("ProofReportSpec", payload)
+
+
+def validate_escalation_report_spec(payload: Mapping[str, Any]) -> None:
+    _validate_named("EscalationReportSpec", payload)
+
+
 __all__ = [
     "ArtifactValidationError",
     "validate_intent_spec",
@@ -72,4 +84,7 @@ __all__ = [
     "validate_execution_trace",
     "validate_integrated_state_report",
     "validate_patch_proposal",
+    "validate_property_pattern_spec",
+    "validate_proof_report_spec",
+    "validate_escalation_report_spec",
 ]

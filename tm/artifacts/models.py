@@ -89,6 +89,19 @@ def _ensure_sequence(value: Any, name: str) -> Sequence[Any]:
     return value
 
 
+def _normalize_slot_fills(value: Any) -> Dict[str, Dict[str, Any]]:
+    if value is None:
+        return {}
+    if not isinstance(value, Mapping):
+        raise TypeError("slot_fills must be a mapping of pattern_id to slot value mapping")
+    result: Dict[str, Dict[str, Any]] = {}
+    for key, inner in value.items():
+        if not isinstance(inner, Mapping):
+            raise TypeError(f"slot_fills['{key}'] must be a mapping")
+        result[str(key)] = {str(slot_key): slot_value for slot_key, slot_value in inner.items()}
+    return result
+
+
 @dataclass
 class TraceLinks:
     parent_intent: str | None = None
@@ -121,6 +134,8 @@ class IntentBody:
     risks: List[str]
     assumptions: List[str]
     trace_links: TraceLinks
+    property_pattern_refs: List[str] = field(default_factory=list)
+    slot_fills: Dict[str, Dict[str, Any]] = field(default_factory=dict)
 
     @classmethod
     def from_mapping(cls, data: Mapping[str, Any]) -> "IntentBody":
@@ -138,6 +153,8 @@ class IntentBody:
             risks=_force_list(data.get("risks"), "risks"),
             assumptions=_force_list(data.get("assumptions"), "assumptions"),
             trace_links=TraceLinks.from_mapping(data.get("trace_links")),
+            property_pattern_refs=_force_list(data.get("property_pattern_refs"), "property_pattern_refs"),
+            slot_fills=_normalize_slot_fills(data.get("slot_fills")),
         )
 
 
@@ -345,6 +362,295 @@ class BacklogBody:
         )
 
 
+@dataclass
+class PropertyPatternSlot:
+    name: str
+    type: str
+    description: str | None = None
+    required: bool = True
+
+    @classmethod
+    def from_mapping(cls, data: Mapping[str, Any]) -> "PropertyPatternSlot":
+        raw = _ensure_dict(data, "property pattern slot")
+        required_value = raw.get("required")
+        if required_value is None:
+            required = True
+        elif isinstance(required_value, bool):
+            required = required_value
+        else:
+            raise TypeError("slot.required must be a boolean")
+        return cls(
+            name=_ensure_str(_require_field(raw, "name"), "slot.name"),
+            type=_ensure_str(_require_field(raw, "type"), "slot.type"),
+            description=(
+                _ensure_str(raw.get("description"), "slot.description") if raw.get("description") is not None else None
+            ),
+            required=required,
+        )
+
+
+@dataclass
+class PropertyPatternCounterexample:
+    description: str
+    scenario: str | None = None
+
+    @classmethod
+    def from_mapping(cls, data: Mapping[str, Any]) -> "PropertyPatternCounterexample":
+        raw = _ensure_dict(data, "property pattern counterexample")
+        return cls(
+            description=_ensure_str(_require_field(raw, "description"), "counterexample.description"),
+            scenario=(
+                _ensure_str(raw.get("scenario"), "counterexample.scenario") if raw.get("scenario") is not None else None
+            ),
+        )
+
+
+@dataclass
+class PropertyPatternBody:
+    artifact_type: ClassVar[ArtifactType] = ArtifactType.PROPERTY_PATTERN
+    pattern_id: str
+    category: str
+    title: str
+    formula_template: str
+    slots: List[PropertyPatternSlot]
+    description: str | None = None
+    applicable_conditions: List[str] = field(default_factory=list)
+    counterexamples: List[PropertyPatternCounterexample] = field(default_factory=list)
+    metadata: Dict[str, Any] = field(default_factory=dict)
+
+    _CATEGORIES: ClassVar[frozenset[str]] = frozenset({"safety", "liveness", "fairness"})
+
+    @classmethod
+    def from_mapping(cls, data: Mapping[str, Any]) -> "PropertyPatternBody":
+        category = _ensure_str(_require_field(data, "category"), "category")
+        if category not in cls._CATEGORIES:
+            raise ValueError(f"category must be one of {sorted(cls._CATEGORIES)}, got '{category}'")
+        slots_raw = _ensure_sequence(_require_field(data, "slots"), "slots")
+        if not slots_raw:
+            raise ValueError("slots must contain at least one entry")
+        slots = [PropertyPatternSlot.from_mapping(slot) for slot in slots_raw]
+        counterexamples_raw = data.get("counterexamples") or []
+        if not isinstance(counterexamples_raw, Sequence) or isinstance(counterexamples_raw, str):
+            raise TypeError("counterexamples must be a sequence")
+        counterexamples = [PropertyPatternCounterexample.from_mapping(item) for item in counterexamples_raw]
+        metadata_raw = data.get("metadata") or {}
+        return cls(
+            pattern_id=_ensure_str(_require_field(data, "pattern_id"), "pattern_id"),
+            category=category,
+            title=_ensure_str(_require_field(data, "title"), "title"),
+            formula_template=_ensure_str(_require_field(data, "formula_template"), "formula_template"),
+            slots=slots,
+            description=(
+                _ensure_str(data.get("description"), "description") if data.get("description") is not None else None
+            ),
+            applicable_conditions=_force_list(data.get("applicable_conditions"), "applicable_conditions"),
+            counterexamples=counterexamples,
+            metadata=_ensure_dict(metadata_raw, "metadata"),
+        )
+
+
+@dataclass
+class KripkeVerdictBody:
+    """Declarative form of a Kripke verification verdict (artifact body shape)."""
+
+    verified: bool
+    properties_checked: int
+    properties_passed: int
+    failed_properties: List[str] = field(default_factory=list)
+    counterexamples: List[Dict[str, Any]] = field(default_factory=list)
+
+    @classmethod
+    def from_mapping(cls, data: Mapping[str, Any]) -> "KripkeVerdictBody":
+        raw = _ensure_dict(data, "kripke_verdict")
+        counterexamples_raw = raw.get("counterexamples") or []
+        if not isinstance(counterexamples_raw, Sequence) or isinstance(counterexamples_raw, str):
+            raise TypeError("kripke_verdict.counterexamples must be a list")
+        return cls(
+            verified=bool(_require_field(raw, "verified")),
+            properties_checked=int(_require_field(raw, "properties_checked")),
+            properties_passed=int(_require_field(raw, "properties_passed")),
+            failed_properties=_force_list(raw.get("failed_properties"), "failed_properties"),
+            counterexamples=[_ensure_dict(ce, "counterexamples") for ce in counterexamples_raw],
+        )
+
+
+@dataclass
+class EvidenceEntryBody:
+    """Declarative evidence-chain entry."""
+
+    source: str
+    event_type: str
+    data: Dict[str, Any] = field(default_factory=dict)
+    timestamp: str | None = None
+
+    @classmethod
+    def from_mapping(cls, data: Mapping[str, Any]) -> "EvidenceEntryBody":
+        raw = _ensure_dict(data, "evidence_entry")
+        ts = raw.get("timestamp")
+        return cls(
+            source=_ensure_str(_require_field(raw, "source"), "source"),
+            event_type=_ensure_str(_require_field(raw, "event_type"), "event_type"),
+            data=_ensure_dict(raw.get("data") or {}, "data"),
+            timestamp=_ensure_str(ts, "timestamp") if ts is not None else None,
+        )
+
+
+@dataclass
+class ProofReportBody:
+    """Proof report artifact body — declarative storage form.
+
+    Promoted from runtime ``tm.control.meta.proof.ProofReport`` in Phase 5
+    Stage 5-2 task 2.5. The runtime class adds hashing / timestamping; the
+    artifact body is the wire/storage form. ``peer_node_id`` and
+    ``peer_chain_ref`` are reserved (optional) fields for Phase 6
+    AgentNetwork cross-node evidence chains.
+    """
+
+    artifact_type: ClassVar[ArtifactType] = ArtifactType.PROOF_REPORT
+    report_id: str
+    intent_id: str
+    cycle_id: str
+    overall_verdict: str
+    pre_snapshot: Dict[str, Any] = field(default_factory=dict)
+    post_snapshot: Dict[str, Any] = field(default_factory=dict)
+    execution_summary: Dict[str, Any] = field(default_factory=dict)
+    kripke_verdict: KripkeVerdictBody | None = None
+    evidence_chain: List[EvidenceEntryBody] = field(default_factory=list)
+    policy_decisions: List[Dict[str, Any]] = field(default_factory=list)
+    verdict_reason: str | None = None
+    created_at: str | None = None
+    report_hash: str | None = None
+    peer_node_id: str | None = None
+    peer_chain_ref: str | None = None
+    metadata: Dict[str, Any] = field(default_factory=dict)
+
+    @classmethod
+    def from_mapping(cls, data: Mapping[str, Any]) -> "ProofReportBody":
+        evidence_raw = data.get("evidence_chain") or []
+        if not isinstance(evidence_raw, Sequence) or isinstance(evidence_raw, str):
+            raise TypeError("evidence_chain must be a list")
+        policy_raw = data.get("policy_decisions") or []
+        if not isinstance(policy_raw, Sequence) or isinstance(policy_raw, str):
+            raise TypeError("policy_decisions must be a list")
+        kripke_raw = data.get("kripke_verdict")
+        kripke = KripkeVerdictBody.from_mapping(kripke_raw) if kripke_raw is not None else None
+        return cls(
+            report_id=_ensure_str(_require_field(data, "report_id"), "report_id"),
+            intent_id=_ensure_str(_require_field(data, "intent_id"), "intent_id"),
+            cycle_id=_ensure_str(_require_field(data, "cycle_id"), "cycle_id"),
+            overall_verdict=_ensure_str(_require_field(data, "overall_verdict"), "overall_verdict"),
+            pre_snapshot=_ensure_dict(data.get("pre_snapshot") or {}, "pre_snapshot"),
+            post_snapshot=_ensure_dict(data.get("post_snapshot") or {}, "post_snapshot"),
+            execution_summary=_ensure_dict(data.get("execution_summary") or {}, "execution_summary"),
+            kripke_verdict=kripke,
+            evidence_chain=[EvidenceEntryBody.from_mapping(_ensure_dict(e, "evidence_entry")) for e in evidence_raw],
+            policy_decisions=[_ensure_dict(p, "policy_decision") for p in policy_raw],
+            verdict_reason=(
+                _ensure_str(data.get("verdict_reason"), "verdict_reason")
+                if data.get("verdict_reason") is not None
+                else None
+            ),
+            created_at=(
+                _ensure_str(data.get("created_at"), "created_at") if data.get("created_at") is not None else None
+            ),
+            report_hash=(
+                _ensure_str(data.get("report_hash"), "report_hash") if data.get("report_hash") is not None else None
+            ),
+            peer_node_id=(
+                _ensure_str(data.get("peer_node_id"), "peer_node_id") if data.get("peer_node_id") is not None else None
+            ),
+            peer_chain_ref=(
+                _ensure_str(data.get("peer_chain_ref"), "peer_chain_ref")
+                if data.get("peer_chain_ref") is not None
+                else None
+            ),
+            metadata=_ensure_dict(data.get("metadata") or {}, "metadata"),
+        )
+
+
+@dataclass
+class EscalationVerdictBody:
+    """Declarative verdict entry inside an EscalationReportBody."""
+
+    kpi: str
+    trend: str
+    converged: bool | None = None
+    delta: float | None = None
+    values: List[float] = field(default_factory=list)
+    reason: str | None = None
+
+    @classmethod
+    def from_mapping(cls, data: Mapping[str, Any]) -> "EscalationVerdictBody":
+        raw = _ensure_dict(data, "escalation_verdict")
+        values_raw = raw.get("values") or []
+        if not isinstance(values_raw, Sequence) or isinstance(values_raw, str):
+            raise TypeError("verdict.values must be a list of numbers")
+        return cls(
+            kpi=_ensure_str(_require_field(raw, "kpi"), "kpi"),
+            trend=_ensure_str(_require_field(raw, "trend"), "trend"),
+            converged=bool(raw["converged"]) if raw.get("converged") is not None else None,
+            delta=float(raw["delta"]) if raw.get("delta") is not None else None,
+            values=[float(v) for v in values_raw],
+            reason=_ensure_str(raw.get("reason"), "reason") if raw.get("reason") is not None else None,
+        )
+
+
+@dataclass
+class EscalationReportBody:
+    """L2 escalation artifact body — declarative storage form.
+
+    Promoted from runtime ``tm.control.meta.escalation.EscalationReport``
+    in Phase 5 Stage 5-2 task 2.5. ``peer_node_id`` is reserved for Phase 6
+    AgentNetwork cross-node escalations.
+    """
+
+    artifact_type: ClassVar[ArtifactType] = ArtifactType.ESCALATION_REPORT
+    report_id: str
+    timestamp: str
+    severity: str
+    intent_ref: str
+    verdicts: List[EscalationVerdictBody] = field(default_factory=list)
+    kpi_history_count: int | None = None
+    recent_rules_fired: List[str] = field(default_factory=list)
+    recent_errors: List[str] = field(default_factory=list)
+    gap_summary: str | None = None
+    suggested_actions: List[str] = field(default_factory=list)
+    counterexample: Dict[str, Any] | None = None
+    peer_node_id: str | None = None
+    metadata: Dict[str, Any] = field(default_factory=dict)
+
+    @classmethod
+    def from_mapping(cls, data: Mapping[str, Any]) -> "EscalationReportBody":
+        verdicts_raw = data.get("verdicts") or []
+        if not isinstance(verdicts_raw, Sequence) or isinstance(verdicts_raw, str):
+            raise TypeError("verdicts must be a list")
+        suggested_raw = data.get("suggested_actions") or []
+        if not isinstance(suggested_raw, Sequence) or isinstance(suggested_raw, str):
+            raise TypeError("suggested_actions must be a list")
+        counterexample_raw = data.get("counterexample")
+        if counterexample_raw is not None and not isinstance(counterexample_raw, Mapping):
+            raise TypeError("counterexample must be a mapping or null")
+        return cls(
+            report_id=_ensure_str(_require_field(data, "report_id"), "report_id"),
+            timestamp=_ensure_str(_require_field(data, "timestamp"), "timestamp"),
+            severity=_ensure_str(_require_field(data, "severity"), "severity"),
+            intent_ref=_ensure_str(_require_field(data, "intent_ref"), "intent_ref"),
+            verdicts=[EscalationVerdictBody.from_mapping(_ensure_dict(v, "verdict")) for v in verdicts_raw],
+            kpi_history_count=(int(data["kpi_history_count"]) if data.get("kpi_history_count") is not None else None),
+            recent_rules_fired=_force_list(data.get("recent_rules_fired"), "recent_rules_fired"),
+            recent_errors=_force_list(data.get("recent_errors"), "recent_errors"),
+            gap_summary=(
+                _ensure_str(data.get("gap_summary"), "gap_summary") if data.get("gap_summary") is not None else None
+            ),
+            suggested_actions=[_ensure_str(a, "suggested_actions") for a in suggested_raw],
+            counterexample=dict(counterexample_raw) if counterexample_raw is not None else None,
+            peer_node_id=(
+                _ensure_str(data.get("peer_node_id"), "peer_node_id") if data.get("peer_node_id") is not None else None
+            ),
+            metadata=_ensure_dict(data.get("metadata") or {}, "metadata"),
+        )
+
+
 ArtifactBody = Union[
     IntentBody,
     CapabilitiesBody,
@@ -355,6 +661,9 @@ ArtifactBody = Union[
     EnvSnapshotBody,
     ProposedChangePlanBody,
     ExecutionReportBody,
+    PropertyPatternBody,
+    ProofReportBody,
+    EscalationReportBody,
 ]
 
 
@@ -379,6 +688,9 @@ _BODY_FACTORY: Dict[ArtifactType, Type[ArtifactBody]] = {
     ArtifactType.ENVIRONMENT_SNAPSHOT: EnvSnapshotBody,
     ArtifactType.PROPOSED_CHANGE_PLAN: ProposedChangePlanBody,
     ArtifactType.EXECUTION_REPORT: ExecutionReportBody,
+    ArtifactType.PROPERTY_PATTERN: PropertyPatternBody,
+    ArtifactType.PROOF_REPORT: ProofReportBody,
+    ArtifactType.ESCALATION_REPORT: EscalationReportBody,
 }
 
 
@@ -407,13 +719,21 @@ __all__ = [
     "BacklogBody",
     "BacklogItem",
     "CapabilitiesBody",
+    "EscalationReportBody",
+    "EscalationVerdictBody",
+    "EvidenceEntryBody",
     "GapMapBody",
     "IntentBody",
+    "KripkeVerdictBody",
     "PlanBody",
     "PlanRule",
+    "ProofReportBody",
     "ProposedChangePlanBody",
     "EnvSnapshotBody",
     "ExecutionReportBody",
+    "PropertyPatternBody",
+    "PropertyPatternCounterexample",
+    "PropertyPatternSlot",
     "TraceLinks",
     "AgentBundleAgent",
     "AgentBundleBody",

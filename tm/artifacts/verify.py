@@ -13,9 +13,11 @@ from .models import (
     ExecutionReportBody,
     PlanBody,
     PlanRule,
+    PropertyPatternBody,
     ProposedChangePlanBody,
 )
 from .report import ArtifactVerificationReport
+from .validator import validate_property_pattern_spec
 from tm.lint.io_contract_lint import lint_agent_bundle_io_contract, lint_plan_io_contract
 from tm.lint.plan_lint import LintIssue
 
@@ -166,6 +168,44 @@ def _validate_proposed_change_plan(
         report.add_error("policy_requirements must be a sequence")
 
 
+def _validate_property_pattern(
+    body: PropertyPatternBody, raw_body: Mapping[str, Any], report: ArtifactVerificationReport
+) -> None:
+    """Lifecycle validation for PropertyPattern artifacts (Stage 5-3 task 3.4).
+
+    Two layers:
+
+    1. **Schema** — reuse the AST schema validator so a candidate body must
+       satisfy ``validate_property_pattern_spec``. Catches malformed slots,
+       missing required fields, invalid category, etc.
+    2. **Template ↔ slot consistency** — every ``{slot}`` placeholder in
+       ``formula_template`` must reference a declared slot; every required
+       slot must appear in the template. This avoids "dead slots" (declared
+       but not referenced) and "phantom slots" (referenced but undeclared).
+    """
+    try:
+        validate_property_pattern_spec(raw_body)
+    except Exception as exc:  # jsonschema.ValidationError, ValueError, etc.
+        report.add_error(f"property pattern schema validation failed: {exc}")
+        return
+
+    import string
+
+    formatter = string.Formatter()
+    placeholders = {
+        field_name for _literal, field_name, _format, _conv in formatter.parse(body.formula_template) if field_name
+    }
+    declared_slots = {slot.name for slot in body.slots}
+    required_slots = {slot.name for slot in body.slots if slot.required}
+
+    phantom = placeholders - declared_slots
+    if phantom:
+        report.add_error(f"property pattern formula_template references undeclared slot(s): {sorted(phantom)}")
+    unused_required = required_slots - placeholders
+    if unused_required:
+        report.add_error(f"property pattern declares required slot(s) not used by template: {sorted(unused_required)}")
+
+
 def _validate_execution_report(
     body: ExecutionReportBody, raw_body: Mapping[str, Any], report: ArtifactVerificationReport
 ) -> None:
@@ -216,6 +256,10 @@ def verify(candidate: Artifact) -> Tuple[Artifact | None, ArtifactVerificationRe
         candidate.body, ExecutionReportBody
     ):
         _validate_execution_report(candidate.body, candidate.body_raw, report)
+    if candidate.envelope.artifact_type == ArtifactType.PROPERTY_PATTERN and isinstance(
+        candidate.body, PropertyPatternBody
+    ):
+        _validate_property_pattern(candidate.body, candidate.body_raw, report)
     if report.errors:
         return None, report
     computed = body_hash(candidate.body_raw)

@@ -1,0 +1,70 @@
+# Seed PropertyPattern: fairness.bounded_X_across_actors
+#
+# Domain-neutral. Captures the "every enforcement gets eventual mediation"
+# shape used to express bounded fairness: whenever the enforcement state X
+# holds, mediation Y eventually follows. No "permanent X without oversight".
+#
+# This is the most common pattern across anti-sybil's 6 properties: every
+# enforcement action (quarantine, tier-downgrade, …) is paired with an
+# eventual mediation step (human review, feed verification, …) so the
+# system can never trap any actor in an unreviewed enforcement state.
+#
+# Example anti-sybil mapping (in fablenet-control downstream):
+#   enforcement_predicate = has(quarantined)
+#   mediation_predicate   = done(human_review)
+# → AG (NOT has(quarantined) OR EF done(human_review))
+#   "every quarantined item eventually gets human review"
+#
+# Example K8s downstream mapping (Stage 5-4 cross-domain validation):
+#   enforcement_predicate = has(pod_throttled)
+#   mediation_predicate   = has(quota_review_completed)
+# → AG (NOT has(pod_throttled) OR EF has(quota_review_completed))
+#   "every throttled pod eventually has its quota reviewed"
+
+pattern_id: fairness.bounded_x_across_actors
+category: fairness
+title: "Every enforcement X is eventually mediated by Y"
+description: |
+  Bounded fairness: whenever the enforcement state X holds, mediation Y
+  must eventually follow. Guarantees that no actor is left in an
+  enforcement state without subsequent oversight or review. This pattern
+  is the formal-structural shape of "due process" in a controlled system.
+formula_template: "AG (NOT {enforcement_predicate} OR EF {mediation_predicate})"
+slots:
+  - name: enforcement_predicate
+    type: ctl_predicate
+    description: |
+      CTL atomic predicate identifying the enforcement state, e.g.
+      ``has(quarantined)`` or ``has(tier_downgraded)``. Use only
+      predicates supported by tm.verify.ctl: has(X), done(X), pending(X),
+      terminal.
+    required: true
+  - name: mediation_predicate
+    type: ctl_predicate
+    description: |
+      CTL atomic predicate identifying the mediation step that must
+      eventually be reached, e.g. ``done(human_review)`` or
+      ``has(feed_verified)``.
+    required: true
+applicable_conditions:
+  - "Enforcement state is reachable in the Kripke model"
+  - "Mediation step is reachable from every state where enforcement holds"
+  - "The model has finite state space (CTL semantics)"
+counterexamples:
+  - description: "Quarantine without human review"
+    scenario: |
+      A reachable path where ``has(quarantined)`` holds and no successor
+      ever reaches ``done(human_review)`` — quarantined items get trapped
+      without oversight, violating fairness.
+  - description: "Throttled pod without quota review"
+    scenario: |
+      K8s scenario where a pod is throttled, then the throttling persists
+      indefinitely because the quota review path is unreachable from the
+      throttled state.
+metadata:
+  source: "Stage 5-3 seed pattern (Phase 5 TraceMind generalization)"
+  abstracts:
+    - "fablenet-control:safety_burst_leads_to_response"
+    - "fablenet-control:liveness_detection_leads_to_action"
+    - "fablenet-control:fairness_quarantine_gets_review"
+    - "fablenet-control:fairness_feed_verified_after_action"

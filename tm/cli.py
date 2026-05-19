@@ -63,6 +63,7 @@ from tm.cli.simulate import register_simulate_command
 from tm.cli.caps import register_caps_commands
 from tm.cli.intent import register_intent_commands
 from tm.cli.intents import register_intents_commands
+from tm.cli.pattern import register_pattern_commands
 from tm.cli.compose import register_compose_commands
 from tm.cli.iterate import register_iterate_commands
 from tm.cli.patch import register_patch_commands
@@ -1505,6 +1506,7 @@ def _build_parser() -> argparse.ArgumentParser:
     register_caps_commands(sub)
     register_intent_commands(sub)
     register_intents_commands(sub)
+    register_pattern_commands(sub)
     register_artifacts_commands(sub)
     register_plan_commands(sub)
     register_run_commands(sub)

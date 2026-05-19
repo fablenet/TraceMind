@@ -1,0 +1,53 @@
+# Seed PropertyPattern: liveness.eventually_X_holds
+#
+# Domain-neutral. Captures the most basic liveness shape: "from the initial
+# state, there exists a path along which X eventually becomes true." The
+# pattern checks that the desired terminal state is reachable, i.e. the
+# controlled system is not stuck.
+#
+# Example anti-sybil mapping (in fablenet-control downstream):
+#   goal_predicate = has(content_discoverable)
+# → EF has(content_discoverable)
+#   "the legitimate content discovery path is reachable"
+#
+# Example K8s downstream mapping (Stage 5-4 cross-domain validation):
+#   goal_predicate = has(desired_replicas_reached)
+# → EF has(desired_replicas_reached)
+#   "the HPA eventually scales to the desired replica count"
+
+pattern_id: liveness.eventually_x_holds
+category: liveness
+title: "X is eventually reachable"
+description: |
+  Basic liveness: from the initial state of the Kripke model, there exists
+  a path along which the goal predicate X holds. Used to assert that
+  beneficial / target states are not unreachable due to overly-restrictive
+  guards or missing transitions.
+formula_template: "EF {goal_predicate}"
+slots:
+  - name: goal_predicate
+    type: ctl_predicate
+    description: |
+      CTL atomic predicate identifying the target state, e.g.
+      ``has(content_discoverable)`` or ``done(plan_response)``. Use only
+      predicates supported by tm.verify.ctl: has(X), done(X), pending(X),
+      terminal.
+    required: true
+applicable_conditions:
+  - "Goal state is a reachable atom in the Kripke model"
+  - "Initial state does not already satisfy the goal (otherwise the test is trivial)"
+  - "Exploration depth is large enough to reach goal-bearing states"
+counterexamples:
+  - description: "Content never becomes discoverable"
+    scenario: |
+      Under the configured plan, no successor path reaches a state where
+      ``has(content_discoverable)`` holds — typically caused by an
+      over-tight quarantine guard or a missing transition.
+  - description: "HPA cannot reach desired replicas"
+    scenario: |
+      K8s scenario where the scale-up path is blocked by a quota guard,
+      so ``has(desired_replicas_reached)`` is unreachable.
+metadata:
+  source: "Stage 5-3 seed pattern (Phase 5 TraceMind generalization)"
+  abstracts:
+    - "fablenet-control:liveness_content_eventually_discoverable"

@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Proof Report Body v0",
+  "description": "Structured evidence that a MAPE-K cycle achieved its intent. Captures pre/post snapshots, execution summary, Kripke verdict, evidence chain, and overall verdict. Promoted from runtime-only dataclass to a K-Ontology v0.2 artifact in Phase 5 Stage 5-2 task 2.5.",
+  "type": "object",
+  "properties": {
+    "report_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "intent_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "cycle_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "pre_snapshot": {
+      "type": "object"
+    },
+    "post_snapshot": {
+      "type": "object"
+    },
+    "execution_summary": {
+      "type": "object"
+    },
+    "kripke_verdict": {
+      "type": "object",
+      "properties": {
+        "verified": {"type": "boolean"},
+        "properties_checked": {"type": "integer", "minimum": 0},
+        "properties_passed": {"type": "integer", "minimum": 0},
+        "failed_properties": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "counterexamples": {
+          "type": "array",
+          "items": {"type": "object"}
+        }
+      },
+      "required": ["verified", "properties_checked", "properties_passed"],
+      "additionalProperties": false
+    },
+    "evidence_chain": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "source": {"type": "string", "minLength": 1},
+          "event_type": {"type": "string", "minLength": 1},
+          "data": {"type": "object"},
+          "timestamp": {"type": "string", "format": "date-time"}
+        },
+        "required": ["source", "event_type"],
+        "additionalProperties": false
+      }
+    },
+    "policy_decisions": {
+      "type": "array",
+      "items": {"type": "object"}
+    },
+    "overall_verdict": {
+      "type": "string",
+      "enum": ["pass", "fail", "inconclusive"]
+    },
+    "verdict_reason": {
+      "type": "string"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "report_hash": {
+      "type": "string"
+    },
+    "peer_node_id": {
+      "type": "string",
+      "description": "Phase 6 reserved: which AgentNetwork node produced this report. Optional; absent on single-node deployments."
+    },
+    "peer_chain_ref": {
+      "type": "string",
+      "description": "Phase 6 reserved: hash of parent (e.g. star-center) report. Optional; absent on single-node deployments."
+    },
+    "metadata": {
+      "type": "object"
+    }
+  },
+  "required": [
+    "report_id",
+    "intent_id",
+    "cycle_id",
+    "overall_verdict"
+  ],
+  "additionalProperties": false
+}

@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Property Pattern Body v0",
+  "type": "object",
+  "properties": {
+    "pattern_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:[._-][a-z0-9]+)*$"
+    },
+    "category": {
+      "type": "string",
+      "enum": ["safety", "liveness", "fairness"]
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "description": {
+      "type": "string"
+    },
+    "formula_template": {
+      "type": "string",
+      "minLength": 1
+    },
+    "slots": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*$"
+          },
+          "type": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": {
+            "type": "string"
+          },
+          "required": {
+            "type": "boolean"
+          }
+        },
+        "required": ["name", "type"],
+        "additionalProperties": false
+      }
+    },
+    "applicable_conditions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "counterexamples": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string",
+            "minLength": 1
+          },
+          "scenario": {
+            "type": "string"
+          }
+        },
+        "required": ["description"],
+        "additionalProperties": false
+      }
+    },
+    "metadata": {
+      "type": "object"
+    }
+  },
+  "required": ["pattern_id", "category", "title", "formula_template", "slots"],
+  "additionalProperties": false
+}

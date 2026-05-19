@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Escalation Report Body v0",
+  "description": "L2 escalation artifact produced when convergence detector flags a stalled / worsening trend. Promoted from runtime-only dataclass to a K-Ontology v0.2 artifact in Phase 5 Stage 5-2 task 2.5.",
+  "type": "object",
+  "properties": {
+    "report_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "severity": {
+      "type": "string",
+      "enum": ["info", "warning", "critical"]
+    },
+    "intent_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "verdicts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "kpi": {"type": "string", "minLength": 1},
+          "trend": {"type": "string", "enum": ["improving", "stalled", "worsening", "insufficient_data"]},
+          "converged": {"type": "boolean"},
+          "delta": {"type": "number"},
+          "values": {"type": "array", "items": {"type": "number"}},
+          "reason": {"type": "string"}
+        },
+        "required": ["kpi", "trend"],
+        "additionalProperties": false
+      }
+    },
+    "kpi_history_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "recent_rules_fired": {
+      "type": "array",
+      "items": {"type": "string"}
+    },
+    "recent_errors": {
+      "type": "array",
+      "items": {"type": "string"}
+    },
+    "gap_summary": {
+      "type": "string"
+    },
+    "suggested_actions": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "tighten_thresholds",
+          "add_new_rule",
+          "update_knowledge",
+          "retrain_model",
+          "human_review",
+          "recompile_bundle",
+          "adjust_kripke_properties"
+        ]
+      }
+    },
+    "counterexample": {
+      "type": ["object", "null"]
+    },
+    "peer_node_id": {
+      "type": "string",
+      "description": "Phase 6 reserved: which AgentNetwork node raised this escalation. Optional."
+    },
+    "metadata": {
+      "type": "object"
+    }
+  },
+  "required": [
+    "report_id",
+    "timestamp",
+    "severity",
+    "intent_ref"
+  ],
+  "additionalProperties": false
+}

@@ -1,0 +1,64 @@
+# Seed PropertyPattern: safety.no_X_amplifies_Y
+#
+# Domain-neutral. The "first regression test" is fablenet-control's anti-sybil
+# scenario, but this pattern is purely structural and applies to any controlled
+# system. No FableNet types appear in slots or formula.
+#
+# Formula intuition: "X (a state) cannot exist unless Y (a gate / precondition)
+# is also in place" — i.e. X cannot amplify / propagate without the controlling
+# precondition Y. Used to express structural safety guards.
+#
+# Example anti-sybil mapping (in fablenet-control downstream):
+#   forbidden_predicate = has(quarantined)
+#   required_predicate  = has(burst_detected)
+# → AG (NOT has(quarantined) OR has(burst_detected))
+#   "no item is quarantined unless a burst was detected"
+#
+# Example K8s downstream mapping (Stage 5-4 cross-domain validation):
+#   forbidden_predicate = has(pod_evicted)
+#   required_predicate  = has(node_pressure)
+# → AG (NOT has(pod_evicted) OR has(node_pressure))
+#   "no pod is evicted unless node pressure was first detected"
+
+pattern_id: safety.no_x_amplifies_y
+category: safety
+title: "No X without required gate Y"
+description: |
+  Structural safety: state X cannot hold in any reachable state unless gate
+  Y also holds. This pattern catches "amplification without control": when
+  a forbidden state X can only legitimately appear if a control mechanism Y
+  is engaged, this pattern asserts there is no reachable counterexample.
+formula_template: "AG (NOT {forbidden_predicate} OR {required_predicate})"
+slots:
+  - name: forbidden_predicate
+    type: ctl_predicate
+    description: |
+      CTL atomic predicate identifying the state being gated, e.g.
+      ``has(quarantined)`` or ``done(reject_request)``. Must use only the
+      predicates supported by tm.verify.ctl: has(X), done(X), pending(X),
+      terminal.
+    required: true
+  - name: required_predicate
+    type: ctl_predicate
+    description: |
+      CTL atomic predicate identifying the gate / precondition. Same
+      predicate vocabulary as ``forbidden_predicate``.
+    required: true
+applicable_conditions:
+  - "Both slots reference atoms over the same Kripke model store/done sets"
+  - "Forbidden state is reachable in the model (otherwise the property is vacuously true)"
+  - "Gate state is also reachable along at least one path"
+counterexamples:
+  - description: "Quarantine without burst detection"
+    scenario: |
+      A path where ``has(quarantined)`` becomes true but
+      ``has(burst_detected)`` was never reached on that path — violates the
+      formula and indicates a missing detection step before enforcement.
+  - description: "Pod eviction without node pressure"
+    scenario: |
+      A K8s scenario where pods are evicted before node-pressure metrics
+      reach threshold — violates the precondition contract.
+metadata:
+  source: "Stage 5-3 seed pattern (Phase 5 TraceMind generalization)"
+  abstracts:
+    - "fablenet-control:safety_no_quarantine_without_detection"
