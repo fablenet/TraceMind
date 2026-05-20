@@ -23,12 +23,20 @@ from tm.control.meta.convergence import (
 from tm.control.meta.cycle_bridge import make_l1_runner
 from tm.control.meta.escalation import (
     UNSPECIFIED_INTENT_REF,
+    CrossNodeEscalationReport,
     EscalationReport,
     Escalator,
+    NetworkEscalator,
     Severity,
     SuggestedAction,
 )
 from tm.control.meta.kpi_tracker import CycleRecord, KpiTracker
+from tm.control.meta.network import (
+    AgentNetworkTopology,
+    NetworkController,
+    NetworkCycleResult,
+    make_leaf_cycle_handler,
+)
 from tm.control.meta.proof import (
     EvidenceEntry,
     KripkeVerdict,
@@ -37,14 +45,18 @@ from tm.control.meta.proof import (
     SnapshotDiff,
     SnapshotDiffEntry,
     Verdict,
+    attach_peer_proofs,
     build_hash_chain,
     diff_snapshots,
     verify_hash_chain,
+    verify_peer_chain,
 )
 
 __all__ = [
+    "AgentNetworkTopology",
     "ConvergenceDetector",
     "ConvergenceVerdict",
+    "CrossNodeEscalationReport",
     "CycleRecord",
     "EscalationReport",
     "Escalator",
@@ -55,6 +67,9 @@ __all__ = [
     "L1Runner",
     "MetaController",
     "MetaControllerResult",
+    "NetworkController",
+    "NetworkCycleResult",
+    "NetworkEscalator",
     "ProofReport",
     "ProofReportGenerator",
     "Severity",
@@ -64,8 +79,11 @@ __all__ = [
     "Trend",
     "UNSPECIFIED_INTENT_REF",
     "Verdict",
+    "attach_peer_proofs",
     "build_hash_chain",
     "diff_snapshots",
     "make_l1_runner",
+    "make_leaf_cycle_handler",
     "verify_hash_chain",
+    "verify_peer_chain",
 ]

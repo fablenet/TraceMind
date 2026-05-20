@@ -55,10 +55,17 @@ class EvidenceEntry:
     event_type: str
     data: dict[str, Any] = field(default_factory=dict)
     timestamp: str = ""
+    peer_node_id: str | None = None
+    peer_chain_ref: str | None = None
 
     def __post_init__(self) -> None:
         if not self.timestamp:
             self.timestamp = datetime.now(timezone.utc).isoformat()
+        # Mirror optional cross-node fields into data for artifact serialization.
+        if self.peer_node_id is not None:
+            self.data.setdefault("peer_node_id", self.peer_node_id)
+        if self.peer_chain_ref is not None:
+            self.data.setdefault("peer_chain_ref", self.peer_chain_ref)
 
 
 @dataclass
@@ -82,6 +89,8 @@ class ProofReport:
 
     created_at: str = ""
     report_hash: str = ""
+    peer_node_id: str | None = None
+    peer_chain_ref: str | None = None
 
     def __post_init__(self) -> None:
         if not self.created_at:
@@ -90,6 +99,11 @@ class ProofReport:
             self.report_hash = self._compute_hash()
 
     def _compute_hash(self) -> str:
+        peer_refs = sorted(
+            entry.peer_chain_ref or entry.data.get("peer_chain_ref") or ""
+            for entry in self.evidence_chain
+            if entry.event_type == "peer_proof_report" and (entry.peer_chain_ref or entry.data.get("peer_chain_ref"))
+        )
         payload = {
             "report_id": self.report_id,
             "intent_id": self.intent_id,
@@ -97,8 +111,13 @@ class ProofReport:
             "overall_verdict": self.overall_verdict.value,
             "kripke_verified": self.kripke_verdict.verified,
             "evidence_count": len(self.evidence_chain),
+            "peer_chain_refs": peer_refs,
         }
         return hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
+
+    def recompute_hash(self) -> None:
+        """Recompute ``report_hash`` after mutating evidence (cross-node attach)."""
+        self.report_hash = self._compute_hash()
 
     def to_dict(self) -> dict[str, Any]:
         d = asdict(self)
@@ -122,6 +141,8 @@ class ProofReport:
                 event_type=str(e.get("event_type", "")),
                 data=dict(e.get("data", {})),
                 timestamp=str(e.get("timestamp", "")),
+                peer_node_id=(str(e.get("peer_node_id")) if e.get("peer_node_id") is not None else None),
+                peer_chain_ref=(str(e.get("peer_chain_ref")) if e.get("peer_chain_ref") is not None else None),
             )
             for e in data.get("evidence_chain", [])
         ]
@@ -146,6 +167,8 @@ class ProofReport:
             verdict_reason=str(data.get("verdict_reason", "")),
             created_at=str(data.get("created_at", "")),
             report_hash=str(data.get("report_hash", "")),
+            peer_node_id=(str(data.get("peer_node_id")) if data.get("peer_node_id") is not None else None),
+            peer_chain_ref=(str(data.get("peer_chain_ref")) if data.get("peer_chain_ref") is not None else None),
         )
 
 
@@ -449,6 +472,77 @@ def verify_hash_chain(chain: Sequence[dict[str, str]], report: ProofReport) -> b
     return all(c["hash"] == e["hash"] for c, e in zip(chain, expected))
 
 
+# ─── Cross-node peer chain ─────────────────────────────────────────
+
+
+def attach_peer_proofs(
+    center_proof: ProofReport,
+    peer_reports: Sequence[tuple[str, ProofReport]],
+) -> ProofReport:
+    """Attach leaf proof hashes as peer evidence entries on a center proof.
+
+    Each leaf contributes one ``peer_proof_report`` evidence entry whose
+    ``peer_chain_ref`` is the leaf's ``report_hash``. The center hash is
+    recomputed so tampering any leaf proof invalidates verification.
+    """
+    for peer_id, peer_proof in peer_reports:
+        peer_hash = peer_proof.report_hash or peer_proof._compute_hash()
+        center_proof.evidence_chain.append(
+            EvidenceEntry(
+                source=f"peer:{peer_id}",
+                event_type="peer_proof_report",
+                data={
+                    "peer_report_id": peer_proof.report_id,
+                    "peer_cycle_id": peer_proof.cycle_id,
+                    "peer_overall_verdict": peer_proof.overall_verdict.value,
+                },
+                peer_node_id=peer_id,
+                peer_chain_ref=peer_hash,
+            )
+        )
+    center_proof.recompute_hash()
+    return center_proof
+
+
+def verify_peer_chain(
+    center_proof: ProofReport,
+    leaf_proofs: Mapping[str, ProofReport],
+) -> tuple[bool, list[str]]:
+    """Verify center peer evidence refs match the supplied leaf proofs."""
+    errors: list[str] = []
+    peer_entries = [e for e in center_proof.evidence_chain if e.event_type == "peer_proof_report"]
+
+    refs_by_peer: dict[str, str] = {}
+    for entry in peer_entries:
+        peer_id = entry.peer_node_id or str(entry.data.get("peer_node_id") or "")
+        ref = entry.peer_chain_ref or str(entry.data.get("peer_chain_ref") or "")
+        if not peer_id:
+            errors.append("peer evidence entry missing peer_node_id")
+            continue
+        refs_by_peer[peer_id] = ref
+
+    if len(refs_by_peer) != len(leaf_proofs):
+        errors.append(f"expected {len(leaf_proofs)} peer evidence entries, got {len(refs_by_peer)}")
+
+    for peer_id, leaf_proof in sorted(leaf_proofs.items()):
+        expected_hash = leaf_proof.report_hash or leaf_proof._compute_hash()
+        attached_ref = refs_by_peer.get(peer_id)
+        if attached_ref is None:
+            errors.append(f"missing peer evidence for '{peer_id}'")
+            continue
+        if attached_ref != expected_hash:
+            errors.append(
+                f"peer chain ref mismatch for '{peer_id}': "
+                f"center has '{attached_ref}', leaf hash is '{expected_hash}'"
+            )
+
+    recomputed = center_proof._compute_hash()
+    if center_proof.report_hash and center_proof.report_hash != recomputed:
+        errors.append(f"center report_hash '{center_proof.report_hash}' " f"does not match recomputed '{recomputed}'")
+
+    return len(errors) == 0, errors
+
+
 __all__ = [
     "EvidenceEntry",
     "KripkeVerdict",
@@ -457,7 +551,9 @@ __all__ = [
     "SnapshotDiff",
     "SnapshotDiffEntry",
     "Verdict",
+    "attach_peer_proofs",
     "build_hash_chain",
     "diff_snapshots",
     "verify_hash_chain",
+    "verify_peer_chain",
 ]

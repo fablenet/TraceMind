@@ -64,8 +64,10 @@ class EscalationReport:
     suggested_actions: tuple[SuggestedAction, ...]
     counterexample: Mapping[str, Any] | None
 
+    peer_node_id: str | None = None
+
     def to_dict(self) -> dict[str, Any]:
-        return {
+        payload = {
             "report_id": self.report_id,
             "timestamp": self.timestamp,
             "severity": self.severity.value,
@@ -88,6 +90,64 @@ class EscalationReport:
             "suggested_actions": [a.value for a in self.suggested_actions],
             "counterexample": dict(self.counterexample) if self.counterexample else None,
         }
+        if self.peer_node_id is not None:
+            payload["peer_node_id"] = self.peer_node_id
+        return payload
+
+    @classmethod
+    def from_dict(cls, data: Mapping[str, Any]) -> "EscalationReport":
+        verdicts: list[ConvergenceVerdict] = []
+        for raw in data.get("verdicts", []):
+            if not isinstance(raw, Mapping):
+                continue
+            trend_raw = str(raw.get("trend", Trend.INSUFFICIENT_DATA.value))
+            try:
+                trend = Trend(trend_raw)
+            except ValueError:
+                trend = Trend.INSUFFICIENT_DATA
+            values_raw = raw.get("values", [])
+            values = tuple(float(v) for v in values_raw) if isinstance(values_raw, Sequence) else ()
+            verdicts.append(
+                ConvergenceVerdict(
+                    converged=bool(raw.get("converged", False)),
+                    trend=trend,
+                    kpi_name=str(raw.get("kpi", raw.get("kpi_name", ""))),
+                    values=values,
+                    delta=float(raw.get("delta", 0.0)),
+                    reason=str(raw.get("reason", "")),
+                )
+            )
+
+        actions: list[SuggestedAction] = []
+        for raw_action in data.get("suggested_actions", []):
+            try:
+                actions.append(SuggestedAction(str(raw_action)))
+            except ValueError:
+                continue
+
+        severity_raw = str(data.get("severity", Severity.WARNING.value))
+        try:
+            severity = Severity(severity_raw)
+        except ValueError:
+            severity = Severity.WARNING
+
+        counterexample = data.get("counterexample")
+        ce = dict(counterexample) if isinstance(counterexample, Mapping) else None
+
+        return cls(
+            report_id=str(data.get("report_id", "")),
+            timestamp=str(data.get("timestamp", "")),
+            severity=severity,
+            intent_ref=str(data.get("intent_ref", UNSPECIFIED_INTENT_REF)),
+            verdicts=tuple(verdicts),
+            kpi_history=(),
+            recent_rules_fired=tuple(str(r) for r in data.get("recent_rules_fired", [])),
+            recent_errors=tuple(str(e) for e in data.get("recent_errors", [])),
+            gap_summary=str(data.get("gap_summary", "")),
+            suggested_actions=tuple(actions),
+            counterexample=ce,
+            peer_node_id=(str(data.get("peer_node_id")) if data.get("peer_node_id") is not None else None),
+        )
 
 
 class Escalator:
@@ -230,9 +290,93 @@ class Escalator:
         return ce
 
 
+@dataclass(frozen=True)
+class CrossNodeEscalationReport:
+    """Aggregated escalation view across center and leaf nodes."""
+
+    network_id: str
+    severity: Severity
+    summary: str
+    center_escalation: EscalationReport | None
+    peer_escalations: Mapping[str, EscalationReport]
+    peer_chain_valid: bool
+    peer_chain_errors: tuple[str, ...]
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "network_id": self.network_id,
+            "severity": self.severity.value,
+            "summary": self.summary,
+            "peer_chain_valid": self.peer_chain_valid,
+            "peer_chain_errors": list(self.peer_chain_errors),
+            "center_escalation": (self.center_escalation.to_dict() if self.center_escalation is not None else None),
+            "peer_escalations": {
+                peer_id: report.to_dict() for peer_id, report in sorted(self.peer_escalations.items())
+            },
+        }
+
+
+class NetworkEscalator:
+    """Aggregates per-node escalations into a cross-node governance view."""
+
+    def __init__(self, network_id: str) -> None:
+        self.network_id = network_id
+
+    def aggregate(
+        self,
+        center_escalation: EscalationReport | None,
+        peer_escalations: Mapping[str, EscalationReport | None],
+        *,
+        peer_chain_valid: bool = True,
+        peer_chain_errors: Sequence[str] = (),
+    ) -> CrossNodeEscalationReport | None:
+        peers = {peer_id: report for peer_id, report in peer_escalations.items() if report is not None}
+        if center_escalation is None and not peers and peer_chain_valid:
+            return None
+
+        severity = self._worst_severity(center_escalation, peers.values())
+        if not peer_chain_valid:
+            severity = Severity.CRITICAL
+
+        parts: list[str] = []
+        if not peer_chain_valid:
+            parts.append("peer proof chain verification failed")
+            parts.extend(peer_chain_errors)
+        if center_escalation is not None:
+            parts.append(f"center: {center_escalation.gap_summary}")
+        for peer_id, report in sorted(peers.items()):
+            parts.append(f"peer {peer_id}: {report.gap_summary}")
+
+        return CrossNodeEscalationReport(
+            network_id=self.network_id,
+            severity=severity,
+            summary=" | ".join(parts) if parts else "cross-node escalation",
+            center_escalation=center_escalation,
+            peer_escalations=peers,
+            peer_chain_valid=peer_chain_valid,
+            peer_chain_errors=tuple(peer_chain_errors),
+        )
+
+    def _worst_severity(
+        self,
+        center: EscalationReport | None,
+        peers: Sequence[EscalationReport],
+    ) -> Severity:
+        order = {Severity.INFO: 0, Severity.WARNING: 1, Severity.CRITICAL: 2}
+        worst = Severity.INFO
+        for report in [center, *peers]:
+            if report is None:
+                continue
+            if order[report.severity] > order[worst]:
+                worst = report.severity
+        return worst
+
+
 __all__ = [
+    "CrossNodeEscalationReport",
     "EscalationReport",
     "Escalator",
+    "NetworkEscalator",
     "Severity",
     "SuggestedAction",
     "UNSPECIFIED_INTENT_REF",

@@ -9,6 +9,7 @@ from tm.server.routes_llm import create_llm_router
 from tm.server.routes_artifacts import create_artifact_router
 from tm.server.routes_meta import create_meta_router
 from tm.server.routes_workspace import create_workspace_router
+from tm.server.routes_network import create_network_router
 from tm.server.routes_runs import create_runs_router
 from tm.server.workspace_manager import WorkspaceManager
 
@@ -24,6 +25,7 @@ def create_app(config: ServerConfig | None = None) -> FastAPI:
     app.include_router(create_meta_router())
     app.include_router(create_controller_router(cfg, manager))
     app.include_router(create_controller_v1_router(cfg, manager))
+    app.include_router(create_network_router())
     app.include_router(create_runs_router(cfg, manager))
     return app
 
