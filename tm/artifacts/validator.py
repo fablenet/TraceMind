@@ -75,6 +75,10 @@ def validate_escalation_report_spec(payload: Mapping[str, Any]) -> None:
     _validate_named("EscalationReportSpec", payload)
 
 
+def validate_agent_network_spec(payload: Mapping[str, Any]) -> None:
+    _validate_named("AgentNetworkSpec", payload)
+
+
 __all__ = [
     "ArtifactValidationError",
     "validate_intent_spec",
@@ -87,4 +91,5 @@ __all__ = [
     "validate_property_pattern_spec",
     "validate_proof_report_spec",
     "validate_escalation_report_spec",
+    "validate_agent_network_spec",
 ]

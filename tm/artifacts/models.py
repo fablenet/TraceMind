@@ -651,6 +651,105 @@ class EscalationReportBody:
         )
 
 
+@dataclass
+class AgentNetworkEdge:
+    """Edge in an AgentNetwork artifact (star topology v0.3).
+
+    ``from``/``to`` are AgentBundle artifact IDs. ``kpi_keys`` declares the KPIs
+    carried over this edge (leaf-to-center: KPIs reported up; center-to-leaf:
+    KPIs the leaf must accept as patch payload keys). ``allowed_patches`` is the
+    set of patch kinds the *source* may dispatch over this edge — leaves never
+    patch the center, so leaf-to-center edges MUST keep ``allowed_patches``
+    empty (enforced by lint, not schema).
+    """
+
+    source: str
+    target: str
+    kpi_keys: List[str]
+    allowed_patches: List[str] = field(default_factory=list)
+    transport: str | None = None
+    description: str | None = None
+
+    @classmethod
+    def from_mapping(cls, data: Mapping[str, Any]) -> "AgentNetworkEdge":
+        raw = _ensure_dict(data, "agent_network_edge")
+        kpi_raw = _ensure_sequence(_require_field(raw, "kpi_keys"), "edge.kpi_keys")
+        if not kpi_raw:
+            raise ValueError("edge.kpi_keys must contain at least one entry")
+        allowed_raw = raw.get("allowed_patches") or []
+        if not isinstance(allowed_raw, Sequence) or isinstance(allowed_raw, str):
+            raise TypeError("edge.allowed_patches must be a sequence")
+        return cls(
+            source=_ensure_str(_require_field(raw, "from"), "edge.from"),
+            target=_ensure_str(_require_field(raw, "to"), "edge.to"),
+            kpi_keys=[_ensure_str(k, "edge.kpi_keys") for k in kpi_raw],
+            allowed_patches=[_ensure_str(p, "edge.allowed_patches") for p in allowed_raw],
+            transport=(
+                _ensure_str(raw.get("transport"), "edge.transport") if raw.get("transport") is not None else None
+            ),
+            description=(
+                _ensure_str(raw.get("description"), "edge.description") if raw.get("description") is not None else None
+            ),
+        )
+
+
+@dataclass
+class AgentNetworkBody:
+    """AgentNetwork artifact body — star-topology agent network description.
+
+    Introduced by K-Ontology v0.3 (Phase 6 Stage 6-1). Describes one center
+    AgentBundle aggregating governance over N leaf AgentBundles, with typed
+    per-edge contracts (KPIs reported up, patch kinds dispatched down). The
+    bundles are referenced by artifact ID — never embedded — following the
+    same pattern-by-reference design as v0.2 IntentBody ↔ PropertyPattern.
+
+    v0.3 supports ``topology="star"`` only. ``topology="tree"`` is enum-reserved
+    and MUST be rejected by the verifier (see ``_validate_agent_network``).
+    """
+
+    artifact_type: ClassVar[ArtifactType] = ArtifactType.AGENT_NETWORK
+    network_id: str
+    topology: str
+    center_bundle_ref: str
+    leaf_bundle_refs: List[str]
+    edges: List[AgentNetworkEdge]
+    transport_default: str
+    description: str | None = None
+    metadata: Dict[str, Any] = field(default_factory=dict)
+
+    _SUPPORTED_TOPOLOGIES: ClassVar[frozenset[str]] = frozenset({"star", "tree"})
+    _SUPPORTED_TRANSPORTS: ClassVar[frozenset[str]] = frozenset({"inprocess", "http", "file_queue"})
+
+    @classmethod
+    def from_mapping(cls, data: Mapping[str, Any]) -> "AgentNetworkBody":
+        topology = _ensure_str(_require_field(data, "topology"), "topology")
+        if topology not in cls._SUPPORTED_TOPOLOGIES:
+            raise ValueError(f"topology must be one of {sorted(cls._SUPPORTED_TOPOLOGIES)}, got '{topology}'")
+        transport_default = _ensure_str(_require_field(data, "transport_default"), "transport_default")
+        if transport_default not in cls._SUPPORTED_TRANSPORTS:
+            raise ValueError(
+                f"transport_default must be one of {sorted(cls._SUPPORTED_TRANSPORTS)}, got '{transport_default}'"
+            )
+        leaves_raw = _ensure_sequence(_require_field(data, "leaf_bundle_refs"), "leaf_bundle_refs")
+        if not leaves_raw:
+            raise ValueError("leaf_bundle_refs must contain at least one entry")
+        edges_raw = _ensure_sequence(_require_field(data, "edges"), "edges")
+        if not edges_raw:
+            raise ValueError("edges must contain at least one entry")
+        return cls(
+            network_id=_ensure_str(_require_field(data, "network_id"), "network_id"),
+            topology=topology,
+            center_bundle_ref=_ensure_str(_require_field(data, "center_bundle_ref"), "center_bundle_ref"),
+            leaf_bundle_refs=[_ensure_str(ref, "leaf_bundle_refs") for ref in leaves_raw],
+            edges=[AgentNetworkEdge.from_mapping(_ensure_dict(e, "edge")) for e in edges_raw],
+            transport_default=transport_default,
+            description=(
+                _ensure_str(data.get("description"), "description") if data.get("description") is not None else None
+            ),
+            metadata=_ensure_dict(data.get("metadata") or {}, "metadata"),
+        )
+
+
 ArtifactBody = Union[
     IntentBody,
     CapabilitiesBody,
@@ -664,6 +763,7 @@ ArtifactBody = Union[
     PropertyPatternBody,
     ProofReportBody,
     EscalationReportBody,
+    AgentNetworkBody,
 ]
 
 
@@ -691,6 +791,7 @@ _BODY_FACTORY: Dict[ArtifactType, Type[ArtifactBody]] = {
     ArtifactType.PROPERTY_PATTERN: PropertyPatternBody,
     ArtifactType.PROOF_REPORT: ProofReportBody,
     ArtifactType.ESCALATION_REPORT: EscalationReportBody,
+    ArtifactType.AGENT_NETWORK: AgentNetworkBody,
 }
 
 
@@ -738,6 +839,8 @@ __all__ = [
     "AgentBundleAgent",
     "AgentBundleBody",
     "AgentBundlePlanStep",
+    "AgentNetworkBody",
+    "AgentNetworkEdge",
     "AgentSpec",
     "load_yaml_artifact",
 ]

@@ -527,6 +527,57 @@ _ESCALATION_REPORT_SPEC_SCHEMA: Schema = {
     "additionalProperties": False,
 }
 
+_AGENT_NETWORK_TRANSPORTS = ["inprocess", "http", "file_queue"]
+_AGENT_NETWORK_KPI_KEY_PATTERN = r"^[a-z][a-z0-9_.]*$"
+
+_AGENT_NETWORK_EDGE_SCHEMA: Schema = {
+    "type": "object",
+    "properties": {
+        "from": {"type": "string", "minLength": 1},
+        "to": {"type": "string", "minLength": 1},
+        "kpi_keys": {
+            "type": "array",
+            "minItems": 1,
+            "items": {"type": "string", "pattern": _AGENT_NETWORK_KPI_KEY_PATTERN},
+        },
+        "allowed_patches": {
+            "type": "array",
+            "items": {"type": "string", "minLength": 1},
+        },
+        "transport": {"type": "string", "enum": _AGENT_NETWORK_TRANSPORTS},
+        "description": {"type": "string"},
+    },
+    "required": ["from", "to", "kpi_keys"],
+    "additionalProperties": False,
+}
+
+_AGENT_NETWORK_SPEC_SCHEMA: Schema = {
+    "type": "object",
+    "properties": {
+        "network_id": {"type": "string", "pattern": _IDENTIFIER_PATTERN},
+        "topology": {"type": "string", "enum": ["star", "tree"]},
+        "center_bundle_ref": {"type": "string", "minLength": 1},
+        "leaf_bundle_refs": {
+            "type": "array",
+            "minItems": 1,
+            "items": {"type": "string", "minLength": 1},
+        },
+        "edges": {"type": "array", "minItems": 1, "items": _AGENT_NETWORK_EDGE_SCHEMA},
+        "transport_default": {"type": "string", "enum": _AGENT_NETWORK_TRANSPORTS},
+        "description": {"type": "string"},
+        "metadata": {"type": "object"},
+    },
+    "required": [
+        "network_id",
+        "topology",
+        "center_bundle_ref",
+        "leaf_bundle_refs",
+        "edges",
+        "transport_default",
+    ],
+    "additionalProperties": False,
+}
+
 SCHEMAS: Mapping[str, Schema] = {
     "IntentSpec": _INTENT_SPEC_SCHEMA,
     "CapabilitySpec": _CAPABILITY_SPEC_SCHEMA,
@@ -538,4 +589,5 @@ SCHEMAS: Mapping[str, Schema] = {
     "PropertyPatternSpec": _PROPERTY_PATTERN_SPEC_SCHEMA,
     "ProofReportSpec": _PROOF_REPORT_SPEC_SCHEMA,
     "EscalationReportSpec": _ESCALATION_REPORT_SPEC_SCHEMA,
+    "AgentNetworkSpec": _AGENT_NETWORK_SPEC_SCHEMA,
 }

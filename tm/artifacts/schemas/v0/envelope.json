@@ -5,7 +5,7 @@
   "properties": {
     "artifact_id": {"type": "string"},
     "status": {"type": "string", "enum": ["candidate", "accepted"]},
-    "artifact_type": {"type": "string", "enum": ["intent", "capabilities", "plan", "gap_map", "backlog", "agent_bundle", "environment_snapshot", "proposed_change_plan", "execution_report", "property_pattern", "proof_report", "escalation_report"]},
+    "artifact_type": {"type": "string", "enum": ["intent", "capabilities", "plan", "gap_map", "backlog", "agent_bundle", "environment_snapshot", "proposed_change_plan", "execution_report", "property_pattern", "proof_report", "escalation_report", "agent_network"]},
     "version": {"type": "string"},
     "created_by": {"type": "string"},
     "created_at": {"type": "string", "format": "date-time"},

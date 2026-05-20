@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Agent Network Body v0",
+  "type": "object",
+  "properties": {
+    "network_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:[._-][a-z0-9]+)*$"
+    },
+    "topology": {
+      "type": "string",
+      "enum": ["star", "tree"]
+    },
+    "center_bundle_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "leaf_bundle_refs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "edges": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/edge"
+      }
+    },
+    "transport_default": {
+      "type": "string",
+      "enum": ["inprocess", "http", "file_queue"]
+    },
+    "description": {
+      "type": "string"
+    },
+    "metadata": {
+      "type": "object"
+    }
+  },
+  "required": [
+    "network_id",
+    "topology",
+    "center_bundle_ref",
+    "leaf_bundle_refs",
+    "edges",
+    "transport_default"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "edge": {
+      "type": "object",
+      "properties": {
+        "from": {
+          "type": "string",
+          "minLength": 1
+        },
+        "to": {
+          "type": "string",
+          "minLength": 1
+        },
+        "kpi_keys": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_.]*$"
+          }
+        },
+        "allowed_patches": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "transport": {
+          "type": "string",
+          "enum": ["inprocess", "http", "file_queue"]
+        },
+        "description": {
+          "type": "string"
+        }
+      },
+      "required": ["from", "to", "kpi_keys"],
+      "additionalProperties": false
+    }
+  }
+}

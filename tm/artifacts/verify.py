@@ -6,6 +6,7 @@ from typing import Any, Mapping, Sequence, Tuple
 from .hash import body_hash
 from .models import (
     AgentBundleBody,
+    AgentNetworkBody,
     Artifact,
     ArtifactStatus,
     ArtifactType,
@@ -17,7 +18,8 @@ from .models import (
     ProposedChangePlanBody,
 )
 from .report import ArtifactVerificationReport
-from .validator import validate_property_pattern_spec
+from .validator import validate_agent_network_spec, validate_property_pattern_spec
+from tm.lint.agent_network_lint import lint_agent_network
 from tm.lint.io_contract_lint import lint_agent_bundle_io_contract, lint_plan_io_contract
 from tm.lint.plan_lint import LintIssue
 
@@ -220,6 +222,38 @@ def _validate_execution_report(
         report.add_error("execution report 'policy_decisions' must be a sequence")
 
 
+def _validate_agent_network(
+    body: AgentNetworkBody, raw_body: Mapping[str, Any], report: ArtifactVerificationReport
+) -> None:
+    """Lifecycle validation for AgentNetwork artifacts (Phase 6 Stage 6-1.6).
+
+    Three layers, matching the governance contract documented in
+    ``docs/specs/k-ontology-v0.3.md`` §5:
+
+    1. **JSON schema** — reuse the AST schema validator so a candidate body
+       must satisfy ``validate_agent_network_spec``. Catches malformed types,
+       missing required fields, unknown enum values
+    2. **Topology lint** — run ``lint_agent_network`` and surface every
+       error-severity issue (warnings remain advisory but are not blocking).
+       This covers leaf-to-leaf edges, leaf-patches-center, KPI name shape,
+       tree-reserved topology, etc.
+    3. **Body hash determinism** — same canonical hash as every other artifact
+       body (handled in ``verify`` itself)
+    """
+    try:
+        validate_agent_network_spec(raw_body)
+    except Exception as exc:  # jsonschema / ValueError / TypeError
+        report.add_error(f"agent network schema validation failed: {exc}")
+        return
+
+    issues = lint_agent_network(raw_body)
+    for issue in issues:
+        if issue.severity != "error":
+            continue
+        suffix = f" (path: {issue.path})" if issue.path else ""
+        report.add_error(f"{issue.code}: {issue.message}{suffix}")
+
+
 def _apply_success_metadata(artifact: Artifact, computed_hash: str) -> None:
     artifact.envelope.body_hash = computed_hash
     hashes = artifact.envelope.meta.get("hashes")
@@ -260,6 +294,8 @@ def verify(candidate: Artifact) -> Tuple[Artifact | None, ArtifactVerificationRe
         candidate.body, PropertyPatternBody
     ):
         _validate_property_pattern(candidate.body, candidate.body_raw, report)
+    if candidate.envelope.artifact_type == ArtifactType.AGENT_NETWORK and isinstance(candidate.body, AgentNetworkBody):
+        _validate_agent_network(candidate.body, candidate.body_raw, report)
     if report.errors:
         return None, report
     computed = body_hash(candidate.body_raw)
