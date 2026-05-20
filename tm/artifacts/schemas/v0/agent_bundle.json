@@ -166,17 +166,80 @@
       "type": "object",
       "properties": {
         "kind": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1,
+          "description": "Runtime implementation selector. Phase 5 builtins include tm-shell, tm-noop, tm-http-mock. Phase 6 adds inprocess (alias/default) and remote (cross-node via Transport)."
         },
         "config": {
           "type": "object"
+        },
+        "endpoint": {
+          "type": "string",
+          "minLength": 1,
+          "description": "URL or peer identifier for kind=remote runtimes (e.g. https://leaf-1:8080)."
+        },
+        "transport_kind": {
+          "type": "string",
+          "enum": [
+            "inprocess",
+            "http",
+            "file_queue"
+          ],
+          "description": "Transport implementation selected by the resolver when kind=remote."
+        },
+        "retry_policy": {
+          "type": "object",
+          "properties": {
+            "max_attempts": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "base_backoff_s": {
+              "type": "number",
+              "minimum": 0
+            },
+            "max_backoff_s": {
+              "type": "number",
+              "minimum": 0
+            }
+          },
+          "additionalProperties": false
+        },
+        "timeout_ms": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "auth_ref": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Opaque secret-store reference; never inline a token here."
         }
       },
       "required": [
         "kind",
         "config"
       ],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "remote"
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "required": [
+              "endpoint",
+              "transport_kind"
+            ]
+          }
+        }
+      ]
     },
     "agent_contract": {
       "type": "object",
