@@ -1,0 +1,16 @@
+network_id: network.violation.demo
+topology: star
+center_bundle_ref: bundle.center
+leaf_bundle_refs:
+  - bundle.leaf_a
+  - bundle.leaf_b
+edges:
+  - from: bundle.leaf_a
+    to: bundle.center
+    kpi_keys:
+      - kpi.alpha
+  - from: bundle.leaf_b
+    to: bundle.center
+    kpi_keys:
+      - kpi.beta
+transport_default: inprocess

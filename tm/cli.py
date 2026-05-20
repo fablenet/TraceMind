@@ -53,6 +53,7 @@ from tm.monitoring.report import (
 )
 
 __path__ = [str(Path(__file__).with_name("cli"))]
+from tm.cli.verify_network import run_verify_network
 from tm.cli.plugin_verify import run as plugin_verify_run
 from tm.cli.artifacts_cli import register_artifacts_commands, register_plan_commands
 from tm.cli.dsl import register_dsl_commands
@@ -576,6 +577,23 @@ def _build_parser() -> argparse.ArgumentParser:
     verify_online.add_argument("--force", action="store_true", help="Overwrite existing artifacts on compile")
     verify_online.add_argument("--no-lint", action="store_true", help="Skip linting before compilation")
     verify_online.set_defaults(func=_cmd_verify_online)
+
+    verify_network = verify_sub.add_parser(
+        "network",
+        help="verify AgentNetwork joint Kripke properties offline",
+    )
+    verify_network.add_argument("agent_network", help="AgentNetwork YAML/JSON path")
+    verify_network.add_argument(
+        "--bundle",
+        action="append",
+        metavar="REF=PATH",
+        help="Bundle artifact path keyed by bundle ref (repeatable)",
+    )
+    verify_network.add_argument("--formulas", help="YAML/JSON file listing CTL formulas")
+    verify_network.add_argument("--max-depth", type=int, default=16, help="Maximum BFS depth (default: 16)")
+    verify_network.add_argument("--hash-mode", choices=["full", "store"], default="full", help="State hashing mode")
+    verify_network.add_argument("--format", choices=["text", "json"], default="text", help="Output format")
+    verify_network.set_defaults(func=run_verify_network)
 
     approve_parser = sub.add_parser("approve", help="manage human approvals")
     approve_parser.add_argument("--config", default="trace-mind.toml", help="governance config path")

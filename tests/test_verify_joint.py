@@ -77,12 +77,12 @@ class TestJointAdapterConstruction:
                 component_ids=["agent", "agent"],
             )
 
-    def test_id_with_dot_rejected(self) -> None:
-        with pytest.raises(ValueError, match="must be non-empty"):
-            JointAdapter.from_components(
-                [_component(), _component()],
-                component_ids=["agent.0", "agent.1"],
-            )
+    def test_dotted_component_id_allowed_for_bundle_refs(self) -> None:
+        adapter = JointAdapter.from_components(
+            [_component(), _component()],
+            component_ids=["bundle.center", "bundle.leaf_a"],
+        )
+        assert adapter.component_ids == ("bundle.center", "bundle.leaf_a")
 
     def test_empty_id_rejected(self) -> None:
         with pytest.raises(ValueError, match="must be non-empty"):
@@ -191,7 +191,7 @@ class TestJointVerifyEndToEnd:
         assert result.verified is False
         verdict = result.verdicts[0]
         assert verdict.satisfied is False
-        assert verdict.violation_path == [0]
+        assert verdict.violation_path and verdict.violation_path[0] == 0
 
     def test_safety_always_holds(self) -> None:
         result = joint_verify(

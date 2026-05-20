@@ -1,0 +1,42 @@
+bundle_id: bundle.center
+agents:
+  - agent_id: agent.center
+    name: center-governance
+    version: "0.1"
+    runtime:
+      kind: tm-noop
+      config: {}
+    contract:
+      inputs: []
+      outputs: []
+      effects: []
+    config_schema:
+      type: object
+    evidence_outputs: []
+plan:
+  - step: detect
+    agent_id: agent.center
+    inputs: []
+    outputs: [detected]
+  - step: quarantine
+    agent_id: agent.center
+    inputs: [detected]
+    outputs: [quarantined]
+meta:
+  verify:
+    initial_store: {}
+    changed_paths: [start]
+    steps:
+      detect:
+        reads: []
+        writes: [detected]
+      quarantine:
+        reads: [detected]
+        writes: [quarantined]
+    rules:
+      - name: on_start
+        triggers: [start]
+        steps: [detect]
+      - name: after_detect
+        triggers: [detected]
+        steps: [quarantine]

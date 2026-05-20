@@ -1,0 +1,32 @@
+bundle_id: bundle.leaf_a
+agents:
+  - agent_id: agent.leaf_a
+    name: leaf-a-worker
+    version: "0.1"
+    runtime:
+      kind: tm-noop
+      config: {}
+    contract:
+      inputs: []
+      outputs: []
+      effects: []
+    config_schema:
+      type: object
+    evidence_outputs: []
+plan:
+  - step: observe
+    agent_id: agent.leaf_a
+    inputs: []
+    outputs: [observed]
+meta:
+  verify:
+    initial_store: {}
+    changed_paths: [start]
+    steps:
+      observe:
+        reads: []
+        writes: [observed]
+    rules:
+      - name: on_start
+        triggers: [start]
+        steps: [observe]

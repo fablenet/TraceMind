@@ -36,10 +36,10 @@ from __future__ import annotations
 
 from collections import deque
 from dataclasses import dataclass, field
-from typing import Dict, List, Protocol, Sequence, Tuple
+from typing import Any, Dict, List, Protocol, Sequence, Tuple
 
-from .ctl import check_ctl, parse_expr
-from .explorer import Explorer
+from .ctl import Ctl, check_ctl, eval_state_expr, has_ctl_nodes, parse_expr
+from .explorer import Explorer, ExplorationResult
 from .state import State
 
 
@@ -133,8 +133,8 @@ class JointAdapter:
             if len(set(ids)) != len(ids):
                 raise ValueError("component_ids must be unique")
             for cid in ids:
-                if not cid or "." in cid:
-                    raise ValueError(f"component_id '{cid}' must be non-empty and contain no '.'")
+                if not cid:
+                    raise ValueError(f"component_id must be non-empty, got '{cid}'")
         return cls(components=tuple(components), component_ids=ids)
 
     def initial_state(self) -> State:
@@ -190,6 +190,7 @@ class JointVerdict:
     formula: str
     satisfied: bool
     violation_path: List[int] = field(default_factory=list)
+    counterexample: List[Dict[str, Any]] = field(default_factory=list)
 
 
 @dataclass
@@ -211,7 +212,7 @@ class JointReport:
 
 def _bfs_path_outside(model_edges: Dict[int, List[int]], sat: set[int]) -> List[int]:
     """Return a BFS path from 0 to the first state not in ``sat`` (or [])."""
-    if 0 not in sat:
+    if 0 not in sat and sat:
         return [0]
     visited = {0}
     queue: deque[tuple[int, List[int]]] = deque()
@@ -229,6 +230,67 @@ def _bfs_path_outside(model_edges: Dict[int, List[int]], sat: set[int]) -> List[
     return []
 
 
+def _witness_violation_path(
+    model: ExplorationResult,
+    adapter: JointAdapter,
+    expr: Any,
+    sat: set[int],
+) -> List[int]:
+    """Pick a counterexample path that reaches a meaningful violating state."""
+    if 0 in sat:
+        return []
+    if sat:
+        path = _bfs_path_outside(model.edges, sat)
+        if path:
+            return path
+    probe = expr
+    if isinstance(probe, Ctl) and probe.op == "AG":
+        probe = probe.child
+    if not has_ctl_nodes(probe):
+        for sid in range(len(model.states)):
+            if not eval_state_expr(probe, model.states[sid], adapter):
+                path = model.path_to(sid)
+                if path:
+                    return path
+    path = _bfs_path_outside(model.edges, sat)
+    return path if path else [0]
+
+
+def project_counterexample(
+    adapter: JointAdapter,
+    model: ExplorationResult,
+    violation_path: Sequence[int],
+) -> List[Dict[str, Any]]:
+    """Map a violation path to per-node snapshots and transition labels."""
+    steps: List[Dict[str, Any]] = []
+    for i, sid in enumerate(violation_path):
+        if sid >= len(model.states):
+            continue
+        st = model.states[sid]
+        joint = adapter.joint_state(st)
+        nodes: Dict[str, Dict[str, Any]] = {}
+        for cid, comp in zip(joint.component_ids, joint.components):
+            nodes[cid] = {
+                "store": dict(comp.store),
+                "pending": list(comp.pending),
+                "done": list(comp.done),
+            }
+        transition: str | None = None
+        if i > 0:
+            prev_sid = violation_path[i - 1]
+            pred = model.predecessors.get(sid)
+            if pred is not None and pred[0] == prev_sid:
+                transition = pred[1]
+        steps.append(
+            {
+                "state_index": sid,
+                "transition": transition,
+                "nodes": nodes,
+            }
+        )
+    return steps
+
+
 def joint_verify(
     components: Sequence[ComponentAdapter],
     formulas: Sequence[str],
@@ -236,6 +298,7 @@ def joint_verify(
     component_ids: Sequence[str] | None = None,
     max_depth: int = 16,
     hash_mode: str = "full",
+    project_counterexamples: bool = True,
 ) -> JointReport:
     """Verify a list of CTL formulas on the joint product of N components.
 
@@ -246,8 +309,8 @@ def joint_verify(
             component-local facts using ``has(<component_id>.<key>)`` /
             ``pending(<component_id>.<step>)`` / ``done(<component_id>.<step>)``.
         component_ids: Optional explicit ids for the N components. Defaults
-            to ``agent0``, ``agent1``, …. Ids must be unique and not contain
-            ``.``.
+            to ``agent0``, ``agent1``, …. Ids must be unique. Bundle artifact
+            refs such as ``bundle.center`` are valid (Phase 6 AgentNetwork).
         max_depth: Maximum BFS depth for state exploration.
         hash_mode: ``"full"`` (default) or ``"store"`` — passed through to the
             underlying state hasher.
@@ -274,11 +337,14 @@ def joint_verify(
             verdicts.append(JointVerdict(formula=formula_str, satisfied=True))
         else:
             all_satisfied = False
+            path = _witness_violation_path(model, adapter, expr, sat)
+            counterexample = project_counterexample(adapter, model, path) if project_counterexamples else []
             verdicts.append(
                 JointVerdict(
                     formula=formula_str,
                     satisfied=False,
-                    violation_path=_bfs_path_outside(model.edges, sat),
+                    violation_path=path,
+                    counterexample=counterexample,
                 )
             )
 
@@ -301,4 +367,5 @@ __all__ = [
     "JointReport",
     "JointVerdict",
     "joint_verify",
+    "project_counterexample",
 ]

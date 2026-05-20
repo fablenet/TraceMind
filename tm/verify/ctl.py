@@ -73,6 +73,23 @@ def parse_expr(expr: str) -> Expr:
     def parse_predicate() -> Expr:
         head = pop()
         value: Optional[str] = None
+        if head.lower() == "peer":
+            if peek() != "(":
+                raise ValueError("peer() requires '('")
+            pop()
+            agent_id = pop()
+            if peek() == ",":
+                pop()
+            inner = parse_predicate()
+            if peek() == ")":
+                pop()
+            if not isinstance(inner, Predicate):
+                raise ValueError("peer() second argument must be a predicate call")
+            if inner.value is None:
+                raise ValueError("peer() inner predicate requires an argument")
+            if inner.name.lower() not in ("has", "pending", "done"):
+                raise ValueError("peer() supports has/pending/done inner predicates only")
+            return Predicate(name=inner.name, value=f"{agent_id}.{inner.value}")
         if peek() == "(":
             pop()
             parts: List[str] = []
@@ -150,6 +167,11 @@ def parse_predicate_expr(expr: str) -> Predicate:
     tokens = _tokenize(expr)
     if not tokens:
         raise ValueError("empty predicate")
+    if tokens[0].lower() == "peer":
+        node = parse_expr(expr)
+        if not isinstance(node, Predicate):
+            raise ValueError("peer expression must desugar to a predicate")
+        return node
     pred, pos = _parse_predicate_call(tokens[0], tokens, 1)
     if pos != len(tokens):
         raise ValueError("trailing tokens in predicate")

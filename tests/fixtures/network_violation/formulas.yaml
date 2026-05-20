@@ -1,0 +1,3 @@
+formulas:
+  - AG !(peer(bundle.center, has(quarantined)) && !peer(bundle.leaf_a, has(downgraded)))
+  - EF peer(bundle.center, has(quarantined))
