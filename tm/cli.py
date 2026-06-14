@@ -592,6 +592,12 @@ def _build_parser() -> argparse.ArgumentParser:
     verify_network.add_argument("--formulas", help="YAML/JSON file listing CTL formulas")
     verify_network.add_argument("--max-depth", type=int, default=16, help="Maximum BFS depth (default: 16)")
     verify_network.add_argument("--hash-mode", choices=["full", "store"], default="full", help="State hashing mode")
+    verify_network.add_argument(
+        "--mode",
+        choices=["monolithic", "compositional"],
+        default="monolithic",
+        help="Verification mode: monolithic full product (default) or compositional assume-guarantee",
+    )
     verify_network.add_argument("--format", choices=["text", "json"], default="text", help="Output format")
     verify_network.set_defaults(func=run_verify_network)
 

@@ -61,11 +61,13 @@ def run_verify_network(args) -> int:
         print("verify network: no formulas provided (--formulas required)", file=sys.stderr)
         return 1
 
+    mode = getattr(args, "mode", "monolithic")
     try:
         report = network_verify(
             network,
             bundles,
             formulas,
+            mode=mode,
             max_depth=int(args.max_depth),
             hash_mode=args.hash_mode,
         )
@@ -76,15 +78,24 @@ def run_verify_network(args) -> int:
     if args.format == "json":
         print(json.dumps(report.to_dict(), indent=2))
     else:
-        print(
-            f"network={report.network_id} verified={report.verified} "
-            f"states={report.state_count} deadlocks={report.deadlock_count}"
+        header = (
+            f"network={report.network_id} mode={report.mode} "
+            f"verified={report.verified} states={report.state_count} "
+            f"deadlocks={report.deadlock_count}"
         )
+        if report.mode == "compositional" and report.monolithic_state_count is not None:
+            header += (
+                f" (compositional={report.compositional_state_count} "
+                f"vs monolithic={report.monolithic_state_count})"
+            )
+        print(header)
         for verdict in report.verdicts:
             status = "OK" if verdict.satisfied else "FAIL"
             print(f"  {status}: {verdict.formula}")
             if not verdict.satisfied and verdict.counterexample:
                 print(f"    counterexample_steps={len(verdict.counterexample)}")
+        for fb in report.fallbacks:
+            print(f"  fallback[{fb['trigger']}]: {fb['formula']}")
 
     return 0 if report.verified else 1
 
