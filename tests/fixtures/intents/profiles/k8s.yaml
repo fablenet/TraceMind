@@ -1,0 +1,9 @@
+# EXAMPLE downstream profile — NOT part of TraceMind core.
+# Demonstrates a second, unrelated domain (K8s HPA fairness).
+profile_id: k8s.hpa_fairness.v1
+domain: k8s
+extends: base
+severity_overrides:
+  where: error
+vocabulary_hints:
+  where: "declare the cluster/namespace scope (AgentNetwork or domain slot)"

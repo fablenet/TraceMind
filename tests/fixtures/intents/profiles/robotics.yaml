@@ -1,0 +1,12 @@
+# EXAMPLE downstream profile — NOT part of TraceMind core.
+# The "third domain" the core has never seen: proves that adding a new domain
+# requires ONLY this file — zero changes to completeness.py / CTL.
+profile_id: robotics.safety.v1
+domain: robotics
+extends: base
+severity_overrides:
+  when: error
+required_slots:
+  - safety_envelope
+vocabulary_hints:
+  when: "declare actuation timing / deadline (Plan triggers or when_* slot)"

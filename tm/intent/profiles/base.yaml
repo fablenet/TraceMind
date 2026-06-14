@@ -1,0 +1,16 @@
+# Base 5W1H completeness profile.
+# Domain-neutral default. Domain profiles `extends: base` and override.
+# See docs/specs/5w1h-completeness-v0_1.md §2 / §4.
+profile_id: base
+domain: null
+severity_overrides:
+  who: error
+  why: error
+  what: error
+  when: warn
+  where: warn
+  how: error
+required_slots: []
+vocabulary_hints:
+  when: "声明触发条件/时序：挂带 triggers 的 Plan，或引用 liveness PropertyPattern"
+  where: "声明作用域/拓扑：挂 AgentNetwork，或 slot_fills 内 domain/where_* 标记键"

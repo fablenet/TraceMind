@@ -17,3 +17,4 @@ class ArtifactType(str, Enum):
     PROOF_REPORT = "proof_report"
     ESCALATION_REPORT = "escalation_report"
     AGENT_NETWORK = "agent_network"
+    INTENT_SESSION = "intent_session"

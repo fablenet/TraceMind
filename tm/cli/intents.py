@@ -132,6 +132,52 @@ def _cmd_intents_coverage(args: argparse.Namespace) -> int:
     return outcome.exit_code
 
 
+def _cmd_intents_check_5w1h(args: argparse.Namespace) -> int:
+    from tm.intent.completeness import compute_5w1h_completeness
+
+    intent_path = Path(args.intents).expanduser()
+    plan_path = Path(args.plan).expanduser() if args.plan else None
+    network_path = Path(args.network).expanduser() if args.network else None
+    patterns_dir = Path(args.patterns).expanduser() if args.patterns else None
+    try:
+        dispositions = None
+        if args.dispositions:
+            from tm.intent.uncertainty import load_dispositions
+
+            dispositions = load_dispositions(Path(args.dispositions).expanduser())
+        outcome = compute_5w1h_completeness(
+            intent_path=intent_path,
+            profile=args.profile,
+            plan_path=plan_path,
+            network_path=network_path,
+            mode=args.mode,
+            dispositions=dispositions,
+            patterns_dir=patterns_dir,
+        )
+    except Exception as exc:
+        print(f"intents check-5w1h: {exc}", file=sys.stderr)
+        return 1
+
+    summary = outcome.report["summary"]
+    closure = ""
+    if outcome.report["mode"] == "seal":
+        closure = (
+            f" sealed={outcome.report.get('sealed')} "
+            f"closed_by_disposition={summary.get('closed_by_disposition', 0)}"
+        )
+    print(
+        "check-5w1h summary: "
+        f"profile={outcome.report['profile']} mode={outcome.report['mode']} "
+        f"intent={outcome.report['intent_id'] or '-'} "
+        f"satisfied={summary['satisfied']}/{summary['total']} "
+        f"errors={summary['errors']} warnings={summary['warnings']} "
+        f"missing={outcome.report['missing_dimensions'] or '[]'}{closure}",
+        file=sys.stderr,
+    )
+    sys.stdout.buffer.write(canonical_json_bytes(outcome.report) + b"\n")
+    return outcome.exit_code
+
+
 def register_intents_commands(subparsers: argparse._SubParsersAction) -> None:
     parser = subparsers.add_parser("intents", help="intent tree topology validation")
     intents_sub = parser.add_subparsers(dest="intents_cmd")
@@ -160,6 +206,30 @@ def register_intents_commands(subparsers: argparse._SubParsersAction) -> None:
         help="optional policy AST path (.json, .yaml, .yml) to include rule intent_refs stats",
     )
     coverage_parser.set_defaults(func=_cmd_intents_coverage)
+
+    check_parser = intents_sub.add_parser(
+        "check-5w1h",
+        help="check 5W1H structural completeness of a single intent (deterministic)",
+    )
+    check_parser.add_argument("--intents", required=True, help="intent body/artifact path (.json, .yaml, .yml)")
+    check_parser.add_argument("--profile", default="base", help="5W1H profile name or path (default: base)")
+    check_parser.add_argument(
+        "--mode",
+        choices=["design", "seal"],
+        default="design",
+        help="design=heuristic-tolerant exploration (default); seal=strict gate before sign-off",
+    )
+    check_parser.add_argument("--plan", help="optional Plan artifact path (When/How evidence)")
+    check_parser.add_argument("--network", help="optional AgentNetwork artifact path (Where evidence)")
+    check_parser.add_argument(
+        "--patterns",
+        help="optional PropertyPattern library dir (When liveness evidence; default: shipped seeds)",
+    )
+    check_parser.add_argument(
+        "--dispositions",
+        help="optional dispositions file (dim -> resolved/waived/dynamic), consumed only in --mode seal",
+    )
+    check_parser.set_defaults(func=_cmd_intents_check_5w1h)
 
 
 __all__ = ["register_intents_commands"]

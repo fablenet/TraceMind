@@ -22,9 +22,15 @@ class ExplorationResult:
             return []
         path: List[int] = [target]
         cur = target
+        seen = {cur}
         while cur in self.predecessors:
             prev, _ = self.predecessors[cur]
+            # Stop on cycles (e.g. self-loops set predecessors[s] = (s, ...)),
+            # otherwise back-tracking the predecessor chain never terminates.
+            if prev in seen:
+                break
             path.append(prev)
+            seen.add(prev)
             cur = prev
         path.reverse()
         return path

@@ -578,6 +578,61 @@ _AGENT_NETWORK_SPEC_SCHEMA: Schema = {
     "additionalProperties": False,
 }
 
+# IntentSession (K-Ontology v0.4 / Phase 7 Stage 7-2). The step / action /
+# status enums mirror the frozen contract in tm/intent/design_loop.py.
+_INTENT_SESSION_TURN_SCHEMA: Schema = {
+    "type": "object",
+    "properties": {
+        "seq": {"type": "integer", "minimum": 0},
+        "role": {"type": "string", "enum": ["human", "agent"]},
+        "action": {
+            "type": "string",
+            "enum": ["propose", "refine", "check_5w1h", "verify", "accept", "clarify", "note"],
+        },
+        "input_ref": {"type": "string", "minLength": 1},
+        "output_ref": {"type": "string", "minLength": 1},
+        "provider": {"type": "string", "minLength": 1},
+        "turn_hash": {"type": "string", "minLength": 1},
+    },
+    "required": ["seq", "role", "action"],
+    "additionalProperties": False,
+}
+
+_INTENT_SESSION_SIGN_OFF_SCHEMA: Schema = {
+    "type": "object",
+    "properties": {
+        "signer": {"type": "string", "minLength": 1},
+        "scope": {"type": "array", "items": {"type": "string", "minLength": 1}},
+        "completeness_snapshot": {"type": "object"},
+        "dispositions": {"type": "object"},
+        "gate_report_hash": {"type": "string", "minLength": 1},
+        "signed_at": _DATE_TIME_SCHEMA,
+        "sign_hash": {"type": "string", "minLength": 1},
+    },
+    "required": ["signer"],
+    "additionalProperties": False,
+}
+
+_INTENT_SESSION_SPEC_SCHEMA: Schema = {
+    "type": "object",
+    "properties": {
+        "session_id": {"type": "string", "pattern": _IDENTIFIER_PATTERN},
+        "root_intent_ref": {"type": "string", "minLength": 1},
+        "status": {"type": "string", "enum": ["working", "sealed"]},
+        "current_step": {
+            "type": "string",
+            "enum": ["draft", "check_5w1h", "propose", "refine", "verify", "accept", "sealed"],
+        },
+        "turns": {"type": "array", "items": _INTENT_SESSION_TURN_SCHEMA},
+        "completeness": {"type": "object"},
+        "produced_refs": {"type": "array", "items": {"type": "string", "minLength": 1}},
+        "sign_off": _INTENT_SESSION_SIGN_OFF_SCHEMA,
+        "metadata": {"type": "object"},
+    },
+    "required": ["session_id", "root_intent_ref", "status", "current_step"],
+    "additionalProperties": False,
+}
+
 SCHEMAS: Mapping[str, Schema] = {
     "IntentSpec": _INTENT_SPEC_SCHEMA,
     "CapabilitySpec": _CAPABILITY_SPEC_SCHEMA,
@@ -590,4 +645,5 @@ SCHEMAS: Mapping[str, Schema] = {
     "ProofReportSpec": _PROOF_REPORT_SPEC_SCHEMA,
     "EscalationReportSpec": _ESCALATION_REPORT_SPEC_SCHEMA,
     "AgentNetworkSpec": _AGENT_NETWORK_SPEC_SCHEMA,
+    "IntentSessionSpec": _INTENT_SESSION_SPEC_SCHEMA,
 }

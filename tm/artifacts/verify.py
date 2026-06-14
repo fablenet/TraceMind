@@ -12,13 +12,18 @@ from .models import (
     ArtifactType,
     EnvSnapshotBody,
     ExecutionReportBody,
+    IntentSessionBody,
     PlanBody,
     PlanRule,
     PropertyPatternBody,
     ProposedChangePlanBody,
 )
 from .report import ArtifactVerificationReport
-from .validator import validate_agent_network_spec, validate_property_pattern_spec
+from .validator import (
+    validate_agent_network_spec,
+    validate_intent_session_spec,
+    validate_property_pattern_spec,
+)
 from tm.lint.agent_network_lint import lint_agent_network
 from tm.lint.io_contract_lint import lint_agent_bundle_io_contract, lint_plan_io_contract
 from tm.lint.plan_lint import LintIssue
@@ -254,6 +259,39 @@ def _validate_agent_network(
         report.add_error(f"{issue.code}: {issue.message}{suffix}")
 
 
+def _validate_intent_session(
+    body: IntentSessionBody, raw_body: Mapping[str, Any], report: ArtifactVerificationReport
+) -> None:
+    """Lifecycle validation for IntentSession artifacts (Phase 7 Stage 7-2.1).
+
+    Two layers (the design-loop transition gating is added in Stage 7-2.2):
+
+    1. **JSON schema** — reuse ``validate_intent_session_spec`` so a candidate
+       body must satisfy the K-Ontology v0.4 schema (status / current_step /
+       turn action enums, required fields).
+    2. **Journal + seal structure** — the append-only ``turns`` journal must
+       carry strictly increasing ``seq`` values, and a ``sealed`` session MUST
+       carry a ``sign_off`` (full uncertainty-closure enforcement lands in
+       Stage 7-2.8).
+    """
+    try:
+        validate_intent_session_spec(raw_body)
+    except Exception as exc:  # jsonschema / ValueError / TypeError
+        report.add_error(f"intent session schema validation failed: {exc}")
+        return
+
+    previous: int | None = None
+    for idx, turn in enumerate(body.turns):
+        if previous is not None and turn.seq <= previous:
+            report.add_error(
+                f"turns[{idx}].seq must be strictly increasing (got {turn.seq} after {previous})"
+            )
+        previous = turn.seq
+
+    if body.status == "sealed" and body.sign_off is None:
+        report.add_error("sealed intent session must carry a 'sign_off' record")
+
+
 def _apply_success_metadata(artifact: Artifact, computed_hash: str) -> None:
     artifact.envelope.body_hash = computed_hash
     hashes = artifact.envelope.meta.get("hashes")
@@ -296,6 +334,10 @@ def verify(candidate: Artifact) -> Tuple[Artifact | None, ArtifactVerificationRe
         _validate_property_pattern(candidate.body, candidate.body_raw, report)
     if candidate.envelope.artifact_type == ArtifactType.AGENT_NETWORK and isinstance(candidate.body, AgentNetworkBody):
         _validate_agent_network(candidate.body, candidate.body_raw, report)
+    if candidate.envelope.artifact_type == ArtifactType.INTENT_SESSION and isinstance(
+        candidate.body, IntentSessionBody
+    ):
+        _validate_intent_session(candidate.body, candidate.body_raw, report)
     if report.errors:
         return None, report
     computed = body_hash(candidate.body_raw)

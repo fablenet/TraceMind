@@ -1,0 +1,120 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Intent Session Body v0",
+  "type": "object",
+  "properties": {
+    "session_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:[._-][a-z0-9]+)*$"
+    },
+    "root_intent_ref": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "type": "string",
+      "enum": ["working", "sealed"]
+    },
+    "current_step": {
+      "type": "string",
+      "enum": ["draft", "check_5w1h", "propose", "refine", "verify", "accept", "sealed"]
+    },
+    "turns": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/turn"
+      }
+    },
+    "completeness": {
+      "type": "object"
+    },
+    "produced_refs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "sign_off": {
+      "$ref": "#/$defs/sign_off"
+    },
+    "metadata": {
+      "type": "object"
+    }
+  },
+  "required": ["session_id", "root_intent_ref", "status", "current_step"],
+  "additionalProperties": false,
+  "$defs": {
+    "turn": {
+      "type": "object",
+      "properties": {
+        "seq": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "role": {
+          "type": "string",
+          "enum": ["human", "agent"]
+        },
+        "action": {
+          "type": "string",
+          "enum": ["propose", "refine", "check_5w1h", "verify", "accept", "clarify", "note"]
+        },
+        "input_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "output_ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "provider": {
+          "type": "string",
+          "minLength": 1
+        },
+        "turn_hash": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": ["seq", "role", "action"],
+      "additionalProperties": false
+    },
+    "sign_off": {
+      "type": "object",
+      "properties": {
+        "signer": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scope": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "completeness_snapshot": {
+          "type": "object"
+        },
+        "dispositions": {
+          "type": "object"
+        },
+        "gate_report_hash": {
+          "type": "string",
+          "minLength": 1
+        },
+        "signed_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "sign_hash": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": ["signer"],
+      "additionalProperties": false
+    }
+  }
+}

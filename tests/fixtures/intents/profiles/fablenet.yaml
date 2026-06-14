@@ -1,0 +1,13 @@
+# EXAMPLE downstream profile — NOT part of TraceMind core.
+# Demonstrates a domain (FableNet anonymity) tightening the base contract.
+profile_id: fablenet.anonymity.v1
+domain: fablenet
+extends: base
+severity_overrides:
+  where: error
+  when: error
+required_slots:
+  - anonymity_scope
+vocabulary_hints:
+  where: "declare an AgentNetwork topology or a domain marker slot"
+  when: "reference a liveness PropertyPattern or a Plan with triggers"

@@ -11,7 +11,9 @@ from tm.server.routes_meta import create_meta_router
 from tm.server.routes_workspace import create_workspace_router
 from tm.server.routes_network import create_network_router
 from tm.server.routes_runs import create_runs_router
+from tm.server.routes_sessions import create_sessions_router
 from tm.server.workspace_manager import WorkspaceManager
+from tm.intent.session_store import SessionStore
 
 
 def create_app(config: ServerConfig | None = None) -> FastAPI:
@@ -27,6 +29,7 @@ def create_app(config: ServerConfig | None = None) -> FastAPI:
     app.include_router(create_controller_v1_router(cfg, manager))
     app.include_router(create_network_router())
     app.include_router(create_runs_router(cfg, manager))
+    app.include_router(create_sessions_router(SessionStore(cfg.base_dir / "sessions")))
     return app
 
 

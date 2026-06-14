@@ -750,6 +750,144 @@ class AgentNetworkBody:
         )
 
 
+# IntentSession vocabularies. The canonical contract lives in
+# ``tm/intent/design_loop.py`` (Task 7-5.0); these frozensets mirror it for
+# schema-free validation without importing tm.intent (avoids an import cycle).
+# ``tests/test_design_loop_contract.py`` / ``test_intent_session_artifact.py``
+# assert they never drift from the design_loop enums.
+_SESSION_STATUSES: frozenset[str] = frozenset({"working", "sealed"})
+_DESIGN_STEPS: frozenset[str] = frozenset(
+    {"draft", "check_5w1h", "propose", "refine", "verify", "accept", "sealed"}
+)
+_TURN_ROLES: frozenset[str] = frozenset({"human", "agent"})
+_TURN_ACTIONS: frozenset[str] = frozenset(
+    {"propose", "refine", "check_5w1h", "verify", "accept", "clarify", "note"}
+)
+
+
+@dataclass
+class IntentSessionTurn:
+    """One append-only journal entry in an IntentSession (Stage 7-2 §2)."""
+
+    seq: int
+    role: str
+    action: str
+    input_ref: str | None = None
+    output_ref: str | None = None
+    provider: str | None = None
+    turn_hash: str | None = None
+
+    @classmethod
+    def from_mapping(cls, data: Mapping[str, Any]) -> "IntentSessionTurn":
+        raw = _ensure_dict(data, "turn")
+        seq_value = _require_field(raw, "seq")
+        if not isinstance(seq_value, int) or isinstance(seq_value, bool):
+            raise TypeError("turn.seq must be an integer")
+        role = _ensure_str(_require_field(raw, "role"), "turn.role")
+        if role not in _TURN_ROLES:
+            raise ValueError(f"turn.role must be one of {sorted(_TURN_ROLES)}, got '{role}'")
+        action = _ensure_str(_require_field(raw, "action"), "turn.action")
+        if action not in _TURN_ACTIONS:
+            raise ValueError(f"turn.action must be one of {sorted(_TURN_ACTIONS)}, got '{action}'")
+
+        def _opt(key: str) -> str | None:
+            return _ensure_str(raw.get(key), f"turn.{key}") if raw.get(key) is not None else None
+
+        return cls(
+            seq=seq_value,
+            role=role,
+            action=action,
+            input_ref=_opt("input_ref"),
+            output_ref=_opt("output_ref"),
+            provider=_opt("provider"),
+            turn_hash=_opt("turn_hash"),
+        )
+
+
+@dataclass
+class IntentSessionSignOff:
+    """Accountable seal record (Stage 7-2 §4c). Required when status=sealed."""
+
+    signer: str
+    scope: List[str] = field(default_factory=list)
+    completeness_snapshot: Dict[str, Any] = field(default_factory=dict)
+    dispositions: Dict[str, Any] = field(default_factory=dict)
+    gate_report_hash: str | None = None
+    signed_at: str | None = None
+    sign_hash: str | None = None
+
+    @classmethod
+    def from_mapping(cls, data: Mapping[str, Any]) -> "IntentSessionSignOff":
+        raw = _ensure_dict(data, "sign_off")
+
+        def _opt(key: str) -> str | None:
+            return _ensure_str(raw.get(key), f"sign_off.{key}") if raw.get(key) is not None else None
+
+        return cls(
+            signer=_ensure_str(_require_field(raw, "signer"), "sign_off.signer"),
+            scope=_force_list(raw.get("scope"), "sign_off.scope"),
+            completeness_snapshot=_ensure_dict(raw.get("completeness_snapshot") or {}, "sign_off.completeness_snapshot"),
+            dispositions=_ensure_dict(raw.get("dispositions") or {}, "sign_off.dispositions"),
+            gate_report_hash=_opt("gate_report_hash"),
+            signed_at=_opt("signed_at"),
+            sign_hash=_opt("sign_hash"),
+        )
+
+
+@dataclass
+class IntentSessionBody:
+    """IntentSession artifact body — persistent, versioned design journal.
+
+    Introduced by K-Ontology v0.4 (Phase 7 Stage 7-2). A *mutable working*
+    record (``status=working``) of how a requirement is iteratively designed:
+    an append-only ``turns`` journal, the current design-loop step, and an
+    embedded latest 5W1H completeness snapshot. The formal products (Intent /
+    PatternInstance / Bundle) are referenced by id and frozen separately —
+    byte-identical equivalence is defined on *them*, not on this journal.
+
+    The step / action / status vocabularies are the frozen contract in
+    ``tm/intent/design_loop.py`` (Task 7-5.0).
+    """
+
+    artifact_type: ClassVar[ArtifactType] = ArtifactType.INTENT_SESSION
+    session_id: str
+    root_intent_ref: str
+    status: str
+    current_step: str
+    turns: List[IntentSessionTurn]
+    completeness: Dict[str, Any] | None = None
+    produced_refs: List[str] = field(default_factory=list)
+    sign_off: IntentSessionSignOff | None = None
+    metadata: Dict[str, Any] = field(default_factory=dict)
+
+    @classmethod
+    def from_mapping(cls, data: Mapping[str, Any]) -> "IntentSessionBody":
+        status = _ensure_str(_require_field(data, "status"), "status")
+        if status not in _SESSION_STATUSES:
+            raise ValueError(f"status must be one of {sorted(_SESSION_STATUSES)}, got '{status}'")
+        current_step = _ensure_str(_require_field(data, "current_step"), "current_step")
+        if current_step not in _DESIGN_STEPS:
+            raise ValueError(f"current_step must be one of {sorted(_DESIGN_STEPS)}, got '{current_step}'")
+        turns_raw = data.get("turns")
+        if turns_raw is None:
+            turns: List[IntentSessionTurn] = []
+        else:
+            turns = [IntentSessionTurn.from_mapping(_ensure_dict(t, "turn")) for t in _ensure_sequence(turns_raw, "turns")]
+        completeness_raw = data.get("completeness")
+        sign_off_raw = data.get("sign_off")
+        return cls(
+            session_id=_ensure_str(_require_field(data, "session_id"), "session_id"),
+            root_intent_ref=_ensure_str(_require_field(data, "root_intent_ref"), "root_intent_ref"),
+            status=status,
+            current_step=current_step,
+            turns=turns,
+            completeness=_ensure_dict(completeness_raw, "completeness") if completeness_raw is not None else None,
+            produced_refs=_force_list(data.get("produced_refs"), "produced_refs"),
+            sign_off=IntentSessionSignOff.from_mapping(sign_off_raw) if sign_off_raw is not None else None,
+            metadata=_ensure_dict(data.get("metadata") or {}, "metadata"),
+        )
+
+
 ArtifactBody = Union[
     IntentBody,
     CapabilitiesBody,
@@ -764,6 +902,7 @@ ArtifactBody = Union[
     ProofReportBody,
     EscalationReportBody,
     AgentNetworkBody,
+    IntentSessionBody,
 ]
 
 
@@ -792,6 +931,7 @@ _BODY_FACTORY: Dict[ArtifactType, Type[ArtifactBody]] = {
     ArtifactType.PROOF_REPORT: ProofReportBody,
     ArtifactType.ESCALATION_REPORT: EscalationReportBody,
     ArtifactType.AGENT_NETWORK: AgentNetworkBody,
+    ArtifactType.INTENT_SESSION: IntentSessionBody,
 }
 
 
@@ -825,6 +965,9 @@ __all__ = [
     "EvidenceEntryBody",
     "GapMapBody",
     "IntentBody",
+    "IntentSessionBody",
+    "IntentSessionSignOff",
+    "IntentSessionTurn",
     "KripkeVerdictBody",
     "PlanBody",
     "PlanRule",

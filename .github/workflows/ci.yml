@@ -26,6 +26,10 @@ jobs:
         shell: bash
         run: python scripts/check_core_independence.py
 
+      - name: No-LLM-in-completeness check (Phase 7 Stage 7-0 task 7-0.7)
+        shell: bash
+        run: python scripts/check_no_llm_in_completeness.py
+
       - name: Run pytest with timeout/fallback
         shell: bash
         run: |

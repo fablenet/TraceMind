@@ -128,6 +128,11 @@ def register_intent_commands(subparsers: argparse._SubParsersAction) -> None:
     intent_parser = subparsers.add_parser("intent", help="intent validation tools")
     intent_sub = intent_parser.add_subparsers(dest="intent_cmd")
     intent_sub.required = True
+
+    from tm.cli.intent_chat import register_session_commands
+
+    register_session_commands(intent_sub)
+
     validate_parser = intent_sub.add_parser("validate", help="validate an IntentSpec using catalog + policy")
     validate_parser.add_argument("intent", help="Intent YAML/JSON path")
     validate_parser.add_argument("--policy", required=True, help="PolicySpec YAML/JSON path")

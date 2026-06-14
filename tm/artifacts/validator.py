@@ -79,6 +79,10 @@ def validate_agent_network_spec(payload: Mapping[str, Any]) -> None:
     _validate_named("AgentNetworkSpec", payload)
 
 
+def validate_intent_session_spec(payload: Mapping[str, Any]) -> None:
+    _validate_named("IntentSessionSpec", payload)
+
+
 __all__ = [
     "ArtifactValidationError",
     "validate_intent_spec",
@@ -92,4 +96,5 @@ __all__ = [
     "validate_proof_report_spec",
     "validate_escalation_report_spec",
     "validate_agent_network_spec",
+    "validate_intent_session_spec",
 ]
