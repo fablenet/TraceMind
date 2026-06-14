@@ -201,8 +201,37 @@ Two distinct fallback triggers, both ending in the full product so the result is
 
 ## 5. Time convergence (POR now, horizon later)
 
-- **POR (MVP, cheap)**: `hash_mode="store"` already merges scheduling-equivalent interleavings by hashing only the store (coarser dedup; see [`SEMANTICS.md`](SEMANTICS.md)). 7-V.5 makes this explicit as a partial-order-reduction lever and *measures* the state reduction it yields, rather than adding new machinery.
-- **Checkpoint horizon (deferred / research)**: segment the BFS at plan milestone/cut predicates, verify within a segment, summarize boundary states, then continue. Flagged research to keep 7-V from ballooning; MVP ships POR measurement only.
+### 5.1 POR (MVP, cheap) — made explicit and measured (7-V.5)
+
+`hash_mode="store"` hashes only the store, merging states that differ only in
+the order pending/done/events were produced (see [`SEMANTICS.md`](SEMANTICS.md)).
+`tm/verify/por.py::measure_por` makes this lever explicit: it explores the same
+product under `full` and `store` hashing and reports
+`PORMeasurement{full_state_count, store_state_count, states_eliminated,
+state_reduction_ratio, …}`. It is **verdict-free** — it only counts, so it can
+never change a result.
+
+**Honest finding (important).** `JointAdapter._project` already canonicalizes
+each component's event/pending/done in *component order*, so naive
+cross-component interleaving does **not** produce distinct full-states — that
+reduction is already structural. store-hash therefore yields *additional*
+reduction only where the **same store is reachable with different pending/done
+queues** (e.g. two order-independent steps writing the same key: a "diamond"
+collapses 5→2 states, ratio 0.6). On products that are already canonical the
+measured reduction is honestly `0`. The dominant state savings in TraceMind come
+from the **compositional abstraction** (§2–4), not from store-hash POR.
+
+**Soundness caveat (declared).** store-hash is sound only for properties over
+store facts (`has(...)`). Formulas referencing `pending(...)` / `done(...)` /
+`Terminal` depend on the scheduling state store-hash collapses and MUST use
+`hash_mode="full"`. POR is an optimization/measurement, never a verdict change.
+
+### 5.2 Checkpoint horizon (deferred / research)
+
+Segment the BFS at plan milestone/cut predicates, verify within a segment,
+summarize boundary states, then continue. Flagged research to keep 7-V from
+ballooning; **MVP ships POR measurement only** and does not implement horizon
+segmentation.
 
 ---
 

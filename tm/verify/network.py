@@ -8,9 +8,9 @@ N offline component adapters, and runs :func:`joint_verify` with optional
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Mapping, Sequence
+from typing import Any, Dict, List, Mapping, Optional, Sequence
 
 try:
     import yaml  # type: ignore[import-untyped]
@@ -19,6 +19,7 @@ except ModuleNotFoundError:
 
 from tm.artifacts.models import AgentBundleBody, AgentNetworkBody
 from tm.verify.bundle_adapter import adapter_from_bundle
+from tm.verify.compositional import LeafSpec, assume_guarantee_verify
 from tm.verify.joint import (
     JointVerdict,
     joint_verify,
@@ -38,9 +39,17 @@ class NetworkVerifyReport:
     state_count: int
     edge_count: int
     deadlock_count: int
+    # 7-V.4 — additive compositional fields. Empty/None in monolithic mode and
+    # NOT serialized there, so default-monolithic output is byte-identical.
+    mode: str = "monolithic"
+    local_verdicts: List[Dict[str, Any]] = field(default_factory=list)
+    abstraction_stats: Dict[str, Dict[str, Any]] = field(default_factory=dict)
+    compositional_state_count: Optional[int] = None
+    monolithic_state_count: Optional[int] = None
+    fallbacks: List[Dict[str, Any]] = field(default_factory=list)
 
     def to_dict(self) -> Dict[str, Any]:
-        return {
+        out: Dict[str, Any] = {
             "verified": self.verified,
             "network_id": self.network_id,
             "component_ids": list(self.component_ids),
@@ -58,6 +67,14 @@ class NetworkVerifyReport:
             "edge_count": self.edge_count,
             "deadlock_count": self.deadlock_count,
         }
+        if self.mode != "monolithic":
+            out["mode"] = self.mode
+            out["local_verdicts"] = list(self.local_verdicts)
+            out["abstraction_stats"] = dict(self.abstraction_stats)
+            out["compositional_state_count"] = self.compositional_state_count
+            out["monolithic_state_count"] = self.monolithic_state_count
+            out["fallbacks"] = list(self.fallbacks)
+        return out
 
     def failed_formulas(self) -> List[str]:
         return [v.formula for v in self.verdicts if not v.satisfied]
@@ -113,18 +130,71 @@ def resolve_bundle_adapters(
     return adapters, ids
 
 
+def resolve_leaf_specs(
+    network: AgentNetworkBody,
+    bundles: Mapping[str, AgentBundleBody],
+) -> List[LeafSpec]:
+    """Map each leaf to a :class:`LeafSpec` for assume-guarantee verification.
+
+    Interface fact set = union of ``kpi_keys`` on every edge touching the leaf
+    (those are the typed, edge-visible KPIs — the leaf's interface). Optional
+    A-G contracts (``guarantees`` / ``assumptions`` as CTL strings) may be
+    supplied under ``network.metadata['contracts'][<leaf_ref>]``.
+    """
+    meta = network.metadata if isinstance(network.metadata, Mapping) else {}
+    contracts = meta.get("contracts") if isinstance(meta.get("contracts"), Mapping) else {}
+
+    specs: List[LeafSpec] = []
+    for ref in network.leaf_bundle_refs:
+        body = bundles.get(ref)
+        if body is None:
+            raise KeyError(f"missing bundle artifact for ref '{ref}'")
+        kpis: List[str] = []
+        for edge in network.edges:
+            if ref in (edge.source, edge.target):
+                for k in edge.kpi_keys:
+                    if k not in kpis:
+                        kpis.append(k)
+        contract = contracts.get(ref) if isinstance(contracts.get(ref), Mapping) else {}
+        specs.append(
+            LeafSpec.of(
+                ref,
+                body,
+                kpis,
+                guarantees=tuple(contract.get("guarantees") or ()),
+                assumptions=tuple(contract.get("assumptions") or ()),
+            )
+        )
+    return specs
+
+
 def network_verify(
     network: AgentNetworkBody,
     bundles: Mapping[str, AgentBundleBody],
     formulas: Sequence[str],
     *,
+    mode: str = "monolithic",
     max_depth: int = 16,
     hash_mode: str = "full",
     project_counterexamples: bool = True,
 ) -> NetworkVerifyReport:
-    """Verify CTL formulas over the joint product of an AgentNetwork."""
+    """Verify CTL formulas over an AgentNetwork.
+
+    ``mode="monolithic"`` (default) builds the full joint product — behavior is
+    byte-identical to Stage 6-4. ``mode="compositional"`` runs assume-guarantee
+    discharge against per-leaf interface abstractions, falling back to the
+    monolithic product for any out-of-class formula or spurious abstract FAIL
+    (so per-formula verdicts always match monolithic).
+    """
     if not formulas:
         raise ValueError("network_verify requires at least one formula")
+    if mode not in ("monolithic", "compositional"):
+        raise ValueError(f"mode must be 'monolithic' or 'compositional', got '{mode}'")
+
+    if mode == "compositional":
+        return _network_verify_compositional(
+            network, bundles, formulas, max_depth=max_depth, hash_mode=hash_mode
+        )
 
     components, component_ids = resolve_bundle_adapters(network, bundles)
     report = joint_verify(
@@ -147,11 +217,70 @@ def network_verify(
     )
 
 
+def _network_verify_compositional(
+    network: AgentNetworkBody,
+    bundles: Mapping[str, AgentBundleBody],
+    formulas: Sequence[str],
+    *,
+    max_depth: int,
+    hash_mode: str,
+) -> NetworkVerifyReport:
+    center_bundle = bundles.get(network.center_bundle_ref)
+    if center_bundle is None:
+        raise KeyError(f"missing bundle artifact for ref '{network.center_bundle_ref}'")
+    leaf_specs = resolve_leaf_specs(network, bundles)
+
+    crep = assume_guarantee_verify(
+        center_bundle,
+        leaf_specs,
+        formulas,
+        center_id=network.center_bundle_ref,
+        max_depth=max_depth,
+        hash_mode=hash_mode,
+    )
+    verdicts = [JointVerdict(formula=v.formula, satisfied=v.satisfied) for v in crep.verdicts]
+    return NetworkVerifyReport(
+        verified=crep.verified,
+        network_id=network.network_id,
+        component_ids=[crep.center_id, *crep.leaf_ids],
+        formulas=list(formulas),
+        verdicts=verdicts,
+        state_count=crep.compositional_state_count,
+        edge_count=0,
+        deadlock_count=0,
+        mode="compositional",
+        local_verdicts=[
+            {"component_id": lv.component_id, "guarantee": lv.guarantee, "satisfied": lv.satisfied}
+            for lv in crep.local_verdicts
+        ],
+        abstraction_stats={cid: st.to_dict() for cid, st in crep.abstraction_stats.items()},
+        compositional_state_count=crep.compositional_state_count,
+        monolithic_state_count=crep.monolithic_state_count,
+        fallbacks=[
+            {
+                "formula": f.formula,
+                "trigger": f.trigger,
+                "reason": f.reason,
+                "monolithic_satisfied": f.monolithic_satisfied,
+                "via": v.via,
+            }
+            for f, v in _zip_fallbacks(crep)
+        ],
+    )
+
+
+def _zip_fallbacks(crep) -> List[tuple]:
+    """Pair each Fallback with the CompositionalVerdict for the same formula."""
+    via_by_formula = {v.formula: v for v in crep.verdicts}
+    return [(f, via_by_formula[f.formula]) for f in crep.fallbacks]
+
+
 def network_verify_from_paths(
     network_path: Path,
     *,
     bundle_paths: Mapping[str, Path],
     formulas_path: Path | None = None,
+    mode: str = "monolithic",
     max_depth: int = 16,
     hash_mode: str = "full",
 ) -> NetworkVerifyReport:
@@ -162,6 +291,7 @@ def network_verify_from_paths(
         network,
         bundles,
         formulas,
+        mode=mode,
         max_depth=max_depth,
         hash_mode=hash_mode,
     )
@@ -180,5 +310,6 @@ __all__ = [
     "network_verify",
     "network_verify_from_paths",
     "resolve_bundle_adapters",
+    "resolve_leaf_specs",
     "write_report_json",
 ]

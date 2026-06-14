@@ -205,6 +205,9 @@ class JointReport:
     state_count: int
     edge_count: int
     deadlock_count: int
+    # 7-V.4: which verification mode produced this report. Additive; the
+    # monolithic product (the default) always reports "monolithic".
+    mode: str = "monolithic"
 
     def failed_formulas(self) -> List[str]:
         return [v.formula for v in self.verdicts if not v.satisfied]
