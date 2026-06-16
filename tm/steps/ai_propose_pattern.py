@@ -42,6 +42,9 @@ import time
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Mapping, Optional, Sequence
 
+from tm.ai.fallback import FallbackTrigger, trigger_for_code
+from tm.ai.llm_evidence import LlmEvidence
+from tm.ai.providers.base import LlmError
 from tm.kb import (
     CaseCorpus,
     CaseStructuredRetriever,
@@ -192,6 +195,182 @@ def _rationale_from_case_hits(case_hits: Sequence[RetrievalHit]) -> str:
     return f"prior cases: {refs}"
 
 
+# ─── LLM-backed path (Stage 7-1.4) ────────────────────────────────
+
+
+class SchemaInvalid(ValueError):
+    """An LLM response did not conform to the :class:`PatternProposal` schema.
+
+    Raising this triggers the ``schema_invalid`` fallback to the deterministic
+    RAG baseline (one of the four DoD fallback triggers).
+    """
+
+
+def _build_llm_prompt(nl_text: str, hits: Sequence[RetrievalHit], library: PatternLibrary) -> str:
+    """RAG-seeded, schema-constrained prompt.
+
+    Seeding with the retrieved catalog (pattern_id + slots) keeps prompts short
+    (cheaper tokens) and forces the model to pick a *real* library pattern, so
+    the response is checkable against the same governance the non-LLM path uses.
+    """
+    lines = [
+        "You are TraceMind's NL->formal pattern proposer.",
+        "Pick one or more patterns from the catalog and fill their slots.",
+        'Respond with ONLY JSON of the form: '
+        '{"candidates":[{"pattern_id":"<id>","slot_fills":{"<slot>":"<value>"},"rationale":"<why>"}]}',
+        "Use only pattern_ids and slot names from the catalog.",
+        "",
+        "Catalog:",
+    ]
+    for hit in hits:
+        entry = library.get(hit.ref)
+        slots = ", ".join(s.name for s in entry.body.slots)
+        lines.append(f"- {hit.ref} (slots: {slots})")
+    lines += ["", f"Requirement: {nl_text}"]
+    return "\n".join(lines)
+
+
+def _parse_llm_candidates(
+    text: str,
+    library: PatternLibrary,
+    slot_hints: Mapping[str, Mapping[str, str]] | None,
+    limit: int,
+) -> List[PatternProposal]:
+    """Parse + **validate** an LLM response into proposals (governance-identical).
+
+    Each candidate must name a real library pattern and fill only that pattern's
+    declared slots; unknown pattern_ids / slot keys are rejected. A
+    structurally-broken response, or one that yields zero valid candidates,
+    raises :class:`SchemaInvalid`.
+    """
+    try:
+        data: Any = json.loads(text)
+    except (ValueError, TypeError) as exc:
+        raise SchemaInvalid(f"response is not valid JSON: {exc}") from exc
+
+    if isinstance(data, Mapping):
+        items = data.get("candidates")
+    elif isinstance(data, list):
+        items = data
+    else:
+        items = None
+    if not isinstance(items, list) or not items:
+        raise SchemaInvalid("response has no non-empty 'candidates' list")
+
+    hints = dict(slot_hints or {})
+    proposals: List[PatternProposal] = []
+    for idx, item in enumerate(items):
+        if not isinstance(item, Mapping):
+            continue
+        pid = item.get("pattern_id")
+        if not isinstance(pid, str):
+            continue
+        try:
+            entry = library.get(pid)
+        except (KeyError, ValueError):
+            continue  # unknown pattern_id → invalid item
+        valid_slots = {s.name for s in entry.body.slots}
+        raw_fills = item.get("slot_fills") or {}
+        if not isinstance(raw_fills, Mapping) or any(k not in valid_slots for k in raw_fills):
+            continue  # non-object fills or unknown slot key → invalid item
+        fills = dict(hints.get(pid, {}))
+        for key, value in raw_fills.items():
+            if isinstance(value, str):
+                fills[key] = value
+        rationale = item.get("rationale")
+        proposals.append(
+            PatternProposal(
+                pattern_id=pid,
+                slot_fills=fills,
+                score=round(1.0 - 0.01 * idx, 6),
+                rationale=rationale if isinstance(rationale, str) else "",
+                source="llm",
+                missing_slots=sorted(s for s in valid_slots if s not in fills),
+            )
+        )
+
+    if not proposals:
+        raise SchemaInvalid("no valid candidate survived schema validation")
+    return proposals[:limit]
+
+
+def _rag_fallback(
+    nl_text: str,
+    library: PatternLibrary,
+    *,
+    corpus: CaseCorpus | None,
+    slot_hints: Mapping[str, Mapping[str, str]] | None,
+    limit: int,
+    category: str | None,
+    trigger: FallbackTrigger,
+    detail: str,
+) -> tuple[List[PatternProposal], Dict[str, Any]]:
+    proposals = propose_pattern_instances(
+        nl_text, library, corpus=corpus, slot_hints=slot_hints, limit=limit, category=category, provider="fake"
+    )
+    return proposals, {"source": "rag_fallback", "fallback": trigger.value, "detail": detail, "evidence": None}
+
+
+async def propose_with_llm(
+    nl_text: str,
+    library: PatternLibrary,
+    *,
+    client: Any,
+    model: str,
+    provider_name: str = "openai",
+    corpus: CaseCorpus | None = None,
+    slot_hints: Mapping[str, Mapping[str, str]] | None = None,
+    limit: int = 5,
+    category: str | None = None,
+    temperature: float | None = 0.0,
+    top_p: float | None = None,
+    timeout_ms: int | None = None,
+    max_retries: int = 0,
+) -> tuple[List[PatternProposal], Dict[str, Any]]:
+    """LLM-backed proposal with deterministic RAG fallback + ``llm_call`` evidence.
+
+    ``client`` is an :class:`tm.ai.llm_client.AsyncLLMClient` (injected, so tests
+    drive it offline). The call degrades to the RAG baseline on a provider-level
+    :class:`LlmError` (unreachable / timeout / rate_limit) **or** on a
+    schema-invalid response — covering all four DoD fallback triggers. On success
+    the candidates carry ``source="llm"`` and the returned meta holds the
+    auditable :class:`LlmEvidence` (prompt/response hash, model, provider, tokens).
+    """
+    hits = PatternKeywordRetriever(library).query(nl_text, limit=max(limit, 3), category=category)
+    prompt = _build_llm_prompt(nl_text, hits, library)
+
+    try:
+        result = await client.call(
+            model=model, prompt=prompt, temperature=temperature, top_p=top_p,
+            timeout_ms=timeout_ms, max_retries=max_retries,
+        )
+    except LlmError as exc:
+        return _rag_fallback(
+            nl_text, library, corpus=corpus, slot_hints=slot_hints, limit=limit,
+            category=category, trigger=trigger_for_code(exc.code), detail=exc.message,
+        )
+
+    try:
+        candidates = _parse_llm_candidates(result.output_text, library, slot_hints, limit)
+    except SchemaInvalid as exc:
+        return _rag_fallback(
+            nl_text, library, corpus=corpus, slot_hints=slot_hints, limit=limit,
+            category=category, trigger=FallbackTrigger.SCHEMA_INVALID, detail=str(exc),
+        )
+
+    evidence = LlmEvidence.from_call(
+        provider=provider_name, model=model, prompt=prompt,
+        response_text=result.output_text, usage=result.usage,
+    )
+    meta = {
+        "source": "llm",
+        "fallback": None,
+        "evidence": evidence.to_dict(),
+        "evidence_hash": evidence.record_hash(),
+    }
+    return candidates, meta
+
+
 # ─── Step parameter validation ────────────────────────────────────
 
 
@@ -309,22 +488,48 @@ async def run(
                 "reason": str(exc),
             }
 
+    meta: Dict[str, Any] = {"source": "rag", "fallback": None}
     try:
-        proposals = propose_pattern_instances(
-            request.nl_text,
-            library,
-            corpus=corpus,
-            slot_hints=request.slot_hints,
-            limit=request.limit,
-            category=request.category,
-            provider=request.provider,
-        )
-    except NotImplementedError as exc:
-        return {
-            "status": "error",
-            "error_code": "PROVIDER_NOT_SUPPORTED",
-            "reason": str(exc),
-        }
+        if request.provider in ("fake", "none", ""):
+            proposals = propose_pattern_instances(
+                request.nl_text,
+                library,
+                corpus=corpus,
+                slot_hints=request.slot_hints,
+                limit=request.limit,
+                category=request.category,
+                provider="fake",
+            )
+        else:
+            # Any non-fake provider is treated as OpenAI-compatible: the same
+            # adapter serves a local 27B endpoint (base_url) and external APIs.
+            from tm.ai.llm_client import make_client
+
+            try:
+                client = make_client(
+                    "openai",
+                    api_key=params.get("api_key"),
+                    base_url=params.get("base_url"),
+                )
+            except ValueError as exc:
+                return {"status": "error", "error_code": "PROVIDER_NOT_SUPPORTED", "reason": str(exc)}
+
+            model = str(params.get("model") or "default")
+            proposals, meta = await propose_with_llm(
+                request.nl_text,
+                library,
+                client=client,
+                model=model,
+                provider_name=request.provider,
+                corpus=corpus,
+                slot_hints=request.slot_hints,
+                limit=request.limit,
+                category=request.category,
+                temperature=params.get("temperature", 0.0),
+                top_p=params.get("top_p"),
+                timeout_ms=params.get("timeout_ms"),
+                max_retries=int(params.get("max_retries", 0) or 0),
+            )
     except Exception as exc:  # pragma: no cover - defensive
         return {
             "status": "error",
@@ -336,6 +541,10 @@ async def run(
     return {
         "status": "ok",
         "provider": request.provider,
+        "source": meta.get("source"),
+        "fallback": meta.get("fallback"),
+        "evidence": meta.get("evidence"),
+        "evidence_hash": meta.get("evidence_hash"),
         "candidates": [p.to_dict() for p in proposals],
         "candidates_json": json.dumps(
             [p.to_dict() for p in proposals],

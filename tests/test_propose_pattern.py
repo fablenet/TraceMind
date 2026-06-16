@@ -210,10 +210,14 @@ class TestAsyncRunEntry:
         assert result["status"] == "error"
         assert result["error_code"] == "BAD_REQUEST"
 
-    def test_unsupported_provider_returns_error(self) -> None:
-        result = asyncio.run(run({"nl_text": "foo", "provider": "openai"}))
-        assert result["status"] == "error"
-        assert result["error_code"] == "PROVIDER_NOT_SUPPORTED"
+    def test_openai_without_transport_degrades_to_rag(self) -> None:
+        # Stage 7-1: a non-fake provider with no transport configured is
+        # *unavailable*, not unsupported — the step degrades gracefully to the
+        # deterministic RAG baseline (invariant 2) instead of erroring out.
+        result = asyncio.run(run({"nl_text": "foo", "provider": "openai", "model": "m"}))
+        assert result["status"] == "ok"
+        assert result["source"] == "rag_fallback"
+        assert result["fallback"] == "unreachable"
 
     def test_candidates_json_round_trips(self) -> None:
         import json
@@ -271,23 +275,33 @@ class TestCustomLibraryRoot:
             assert candidate_ids.issubset({"safety.fake_only"})
 
 
-# ─── Non-LLM invariant (static check) ─────────────────────────────
+# ─── Non-LLM invariant (behavioral) ───────────────────────────────
 
 
 class TestNonLLMPathInvariants:
-    def test_step_source_does_not_import_llm_client(self) -> None:
-        """The non-LLM (``provider=fake``) path must be provably free of
-        any LLM client / provider import. This guards Phase 5 invariant 4.
-        """
+    """Stage 7-1 adds an LLM path to this step, so the Phase-5 *static* "no LLM
+    import anywhere" check no longer holds. The genuine invariant (2/4) — the
+    ``provider=fake`` path stays LLM-free — is now asserted **behaviorally**:
+    the fake path must run to completion without ever constructing an LLM client.
+    """
+
+    def test_fake_path_does_not_construct_llm_client(self, monkeypatch) -> None:
+        import tm.ai.llm_client as llm_client_mod
+
+        def _boom(*args, **kwargs):  # pragma: no cover - must never be hit
+            raise AssertionError("the fake path must not construct an LLM client (invariant 2/4)")
+
+        monkeypatch.setattr(llm_client_mod, "make_client", _boom)
+        result = asyncio.run(run({"nl_text": "safety predicate", "provider": "fake"}))
+        assert result["status"] == "ok"
+        assert result["source"] == "rag"
+        assert result["evidence"] is None
+
+    def test_llm_imports_are_deferred_not_module_level(self) -> None:
+        """``make_client`` is imported lazily *inside* ``run`` so importing the
+        step module never pulls in client machinery for the non-LLM baseline."""
         path = Path(__file__).resolve().parents[1] / "tm" / "steps" / "ai_propose_pattern.py"
         source = path.read_text(encoding="utf-8")
-        forbidden_patterns = [
-            r"from tm\.ai\.llm_client",
-            r"from tm\.ai\.providers",
-            r"import tm\.ai\.llm_client",
-            r"import tm\.ai\.providers",
-        ]
-        for forbidden in forbidden_patterns:
-            assert not re.search(
-                forbidden, source
-            ), f"ai_propose_pattern.py must not import {forbidden!r} — the non-LLM path must stay LLM-free"
+        assert "from tm.ai.llm_client import make_client" in source
+        # the client import must not be a module-level (col-0) import
+        assert not re.search(r"(?m)^from tm\.ai\.llm_client", source)
