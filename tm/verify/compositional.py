@@ -27,7 +27,7 @@ from typing import Dict, List, Optional, Sequence, Tuple
 
 from tm.artifacts.models import AgentBundleBody
 from tm.verify.bundle_adapter import adapter_from_bundle
-from tm.verify.ctl import And, Ctl, Not, Or, Predicate, has_ctl_nodes, parse_expr
+from tm.verify.ctl import And, Ctl, Not, Or, Predicate, Until, has_ctl_nodes, parse_expr
 from tm.verify.explorer import Explorer
 from tm.verify.state import State
 
@@ -221,6 +221,9 @@ def referenced_components(expr, component_ids: Sequence[str]) -> frozenset:
             walk(e.right)
         elif isinstance(e, Ctl):
             walk(e.child)
+        elif isinstance(e, Until):
+            walk(e.left)
+            walk(e.right)
 
     walk(expr)
     return frozenset(out)
@@ -235,6 +238,8 @@ def _contains_terminal(expr) -> bool:
         return _contains_terminal(expr.left) or _contains_terminal(expr.right)
     if isinstance(expr, Ctl):
         return _contains_terminal(expr.child)
+    if isinstance(expr, Until):
+        return _contains_terminal(expr.left) or _contains_terminal(expr.right)
     return False
 
 
@@ -256,6 +261,8 @@ def _unparse(expr) -> str:
         return f"({_unparse(expr.left)} || {_unparse(expr.right)})"
     if isinstance(expr, Ctl):
         return f"{expr.op} {_unparse(expr.child)}"
+    if isinstance(expr, Until):
+        return f"{expr.op}({_unparse(expr.left)}, {_unparse(expr.right)})"
     raise TypeError(f"cannot unparse {expr!r}")
 
 

@@ -8,7 +8,7 @@ from .adapter import TraceMindAdapter
 from .explorer import ExplorationResult
 from .state import State
 
-_TOKEN = re.compile(r"\s*(EX|EF|EG|AF|AG|AND|OR|NOT|\|\||&&|!|\(|\)|[A-Za-z_][A-Za-z0-9_\-\.\[\]\*]*|\S)")
+_TOKEN = re.compile(r"\s*(EX|EF|EG|EU|AF|AG|AU|AND|OR|NOT|\|\||&&|!|\(|\)|[A-Za-z_][A-Za-z0-9_\-\.\[\]\*]*|\S)")
 
 
 class Expr:
@@ -42,6 +42,21 @@ class Or(Expr):
 class Ctl(Expr):
     op: str
     child: Expr
+
+
+@dataclass
+class Until(Expr):
+    """Binary CTL Until — ``EU(p, q)`` / ``AU(p, q)``.
+
+    ``E[p U q]`` / ``A[p U q]`` in textbook notation. ``p`` must hold on every
+    state of the path until ``q`` becomes true, and ``q`` must eventually hold.
+    Written ``EU(p, q)`` / ``AU(p, q)`` here to fit the function-call surface
+    grammar (the ``[...]`` form collides with the predicate-name tokenizer).
+    """
+
+    op: str
+    left: Expr
+    right: Expr
 
 
 def _tokenize(expr: str) -> List[str]:
@@ -113,6 +128,20 @@ def parse_expr(expr: str) -> Expr:
         if tok in {"EX", "EF", "EG", "AF", "AG"}:
             op = pop()
             return Ctl(op=op, child=parse_unary())
+        if tok in {"EU", "AU"}:
+            op = pop()
+            if peek() != "(":
+                raise ValueError(f"{op} requires '(' (use {op}(p, q))")
+            pop()
+            left = parse_or()
+            if peek() != ",":
+                raise ValueError(f"{op} requires two comma-separated operands: {op}(p, q)")
+            pop()
+            right = parse_or()
+            if peek() != ")":
+                raise ValueError(f"missing ')' in {op}(...)")
+            pop()
+            return Until(op=op, left=left, right=right)
         if tok == "(":
             pop()
             node = parse_or()
@@ -194,7 +223,7 @@ def _eval_predicate(pred: Predicate, state: State, adapter: TraceMindAdapter) ->
 
 
 def has_ctl_nodes(expr: Expr) -> bool:
-    if isinstance(expr, Ctl):
+    if isinstance(expr, (Ctl, Until)):
         return True
     if isinstance(expr, (Predicate)):
         return False
@@ -214,7 +243,7 @@ def eval_state_expr(expr: Expr, state: State, adapter: TraceMindAdapter) -> bool
         return eval_state_expr(expr.left, state, adapter) and eval_state_expr(expr.right, state, adapter)
     if isinstance(expr, Or):
         return eval_state_expr(expr.left, state, adapter) or eval_state_expr(expr.right, state, adapter)
-    if isinstance(expr, Ctl):
+    if isinstance(expr, (Ctl, Until)):
         raise ValueError("CTL operator not allowed in state-only evaluation")
     raise TypeError(f"Unsupported expression node: {expr}")
 
@@ -267,6 +296,28 @@ def _sat(expr: Expr, model: ExplorationResult, adapter: TraceMindAdapter) -> Set
         if expr.op == "AG":
             # AG p == not EF not p
             return set(range(len(model.states))) - _sat(Ctl(op="EF", child=Not(expr.child)), model, adapter)
+    if isinstance(expr, Until):
+        # Least fixpoint: sat starts at sat(right); add a state satisfying left
+        # if it can reach sat (EU: some successor; AU: has successors and all in sat).
+        # Terminal states (absent from model.edges) qualify only via sat(right).
+        # EU/AU with left=true reduce exactly to EF/AF respectively.
+        left_sat = _sat(expr.left, model, adapter)
+        sat = set(_sat(expr.right, model, adapter))
+        existential = expr.op == "EU"
+        changed = True
+        while changed:
+            changed = False
+            for sid, succs in model.edges.items():
+                if sid in sat or sid not in left_sat:
+                    continue
+                if existential:
+                    reach = any(nxt in sat for nxt in succs)
+                else:
+                    reach = bool(succs) and all(nxt in sat for nxt in succs)
+                if reach:
+                    sat.add(sid)
+                    changed = True
+        return sat
     raise TypeError(f"Unsupported expression node: {expr}")
 
 
