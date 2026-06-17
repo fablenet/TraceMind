@@ -26,6 +26,7 @@ from .validator import (
 )
 from tm.lint.agent_network_lint import lint_agent_network
 from tm.lint.io_contract_lint import lint_agent_bundle_io_contract, lint_plan_io_contract
+from tm.lint.verify_fidelity_lint import lint_verify_meta_fidelity
 from tm.lint.plan_lint import LintIssue
 
 _SUPPORTED_VERSION_PREFIX = "v0"
@@ -316,6 +317,8 @@ def verify(candidate: Artifact) -> Tuple[Artifact | None, ArtifactVerificationRe
         _validate_agent_bundle(candidate.body, candidate.body_raw, report)
         lint_issues = lint_agent_bundle_io_contract(candidate.body, candidate.body_raw)
         _report_lint_issues(report, lint_issues)
+        fidelity_issues = lint_verify_meta_fidelity(candidate.body, candidate.body_raw)
+        _report_lint_issues(report, [i for i in fidelity_issues if i.severity == "error"])
     if candidate.envelope.artifact_type == ArtifactType.ENVIRONMENT_SNAPSHOT and isinstance(
         candidate.body, EnvSnapshotBody
     ):
