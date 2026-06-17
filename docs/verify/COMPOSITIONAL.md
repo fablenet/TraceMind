@@ -186,7 +186,10 @@ The decomposer (7-V.3) classifies each formula before choosing a mode. The bound
 | Safety / invariant: `AG p` | ✅ sound | A-G discharge (§2) — MVP primary target |
 | Decomposable: conjunction of per-component obligations ∧ a center obligation | ✅ sound | decomposer assigns each conjunct to a leaf `Gᵢ` or to the center-abstract check |
 | Single-component formula (refs one component's facts only) | ✅ sound | discharged as that leaf's local `Gᵢ` (step 1), no center product needed |
-| Liveness / existential cross-component: `EF`, `AF`, `EG`, `EX` over multiple components | ⛔ out of class | **auto-fallback monolithic** |
+| Single-component reachability: `EF p` (refs one component) | ✅ sound | exact local verify (no product); `EF` witness path survives in the product |
+| Liveness / existential cross-component: `EF`, `AF`, `EG`, `EX` over multiple components | ⛔ out of class | **auto-fallback monolithic** (see §4.1) |
+| Fairness / conditional-liveness: `AG(p → EF q)` (eventually nested under `AG`), incl. single-component | ⛔ out of class | **auto-fallback monolithic** (see §4.1) |
+| Single-component liveness: `AF p` (refs one component) | ⛔ out of class | **auto-fallback monolithic** — local liveness ⇏ product liveness without scheduler fairness (§4.1) |
 | Non-decomposable safety (irreducible cross-component coupling) | ⛔ | **auto-fallback monolithic** |
 | Cyclic assumption dependency (§2.5) | ⛔ | **auto-fallback monolithic** |
 
@@ -196,6 +199,41 @@ Two distinct fallback triggers, both ending in the full product so the result is
 2. **Spurious FAIL (decided after)** — the abstract composition reports a counterexample. Because the abstraction is wider, this may be a false FAIL. That specific formula is **re-verified monolithically** to confirm or refute. The monolithic verdict is authoritative; the recheck is recorded in `fallbacks`.
 
 > Net effect: a compositional `verified=True` is sound for the in-class fragment, and a compositional `verified=False` is always confirmed by the full product. Out-of-class properties get the exact same answer they get today.
+
+### 4.1 Why fairness / liveness stays monolithic (the boundary, made explicit)
+
+The `fairness` PropertyPattern category compiles to the **response shape**
+`AG(enforcement → EF mediation) ≡ AG(!has(enforcement) || EF has(mediation))`
+— an *eventually* (`EF`/`AF`) nested under `AG`. The classifier
+(`classify_formula`) routes every formula containing an eventually to
+`OUT_OF_CLASS → monolithic`, and records a precise reason. There are **two
+independent soundness obstructions**, either of which alone is disqualifying:
+
+1. **∃-abstraction is not subset-closed for eventualities.** §2.4's no-false-PASS
+   argument works because safety (`AG p`) is subset-closed: holding over the
+   *larger* abstract behavior set implies holding over the concrete subset. An
+   eventually is the opposite — `EF`/`AF` over a *superset* of traces can hold
+   while the concrete subset does not. Discharging `EF`/`AF` against `Absᵢ` would
+   risk a **false PASS**, the one outcome the whole design forbids.
+
+2. **Single-component liveness does not lift to the unfair async product.** Even
+   with *no* abstraction (verifying the exact leaf locally — the trick that makes
+   single-component *safety* and *reachability* exact), liveness still fails to
+   transfer. The product interleaves components asynchronously with **no fairness
+   constraint**, so it admits schedules that **starve** a component (it never
+   takes a step). A property like `AF has(leafA.ready)` can be true on `leafA`
+   alone yet false in the product along a starving path. So local liveness ⇏
+   product liveness.
+
+Single-component **safety** (`AG p`) and **reachability** (`EF p`) *do* lift
+exactly (stuttering by other components preserves `AG`; and an `EF` witness path
+still exists in the product by letting the component run), which is why those are
+in-class. Liveness/fairness is not, and is verified on the authoritative
+monolithic product — the same answer as today, now with a self-documenting
+fallback reason instead of a generic one. Adding sound compositional
+fairness/liveness would require modeling explicit **scheduler fairness** in the
+joint adapter (e.g. weak/strong fairness constraints), which is deferred
+research, not part of this fragment.
 
 ---
 

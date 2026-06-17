@@ -171,6 +171,45 @@ def test_abstract_fail_is_reconfirmed_on_full_product():
     assert rep.fallbacks[0].trigger == "spurious_fail_recheck"
 
 
+def test_fairness_response_pattern_is_out_of_class_with_precise_reason():
+    # The fairness PropertyPattern shape: AG(enforcement -> EF mediation).
+    fairness = "AG (!has(leafA.bad_a) || EF has(leafA.ready_a))"
+    cls = classify_formula(fairness, IDS)
+    assert cls.property_class is PropertyClass.OUT_OF_CLASS
+    assert cls.compositional is False
+    assert "fairness" in cls.reason and "starvation" in cls.reason
+
+
+def test_fairness_falls_back_and_matches_monolithic():
+    center, leaves, (la, lb) = _star()
+    fairness = "AG (!has(leafA.bad_a) || EF has(leafA.ready_a))"
+    rep = assume_guarantee_verify(center, leaves, [fairness], center_id="center")
+    v = rep.verdicts[0]
+    assert v.via == "monolithic_fallback"
+    assert rep.fallbacks[0].trigger == "out_of_class"
+    assert "fairness" in rep.fallbacks[0].reason
+    assert v.satisfied == _monolithic(center, la, lb, [fairness]).verdicts[0].satisfied
+
+
+def test_single_component_liveness_is_out_of_class_not_local():
+    # AF over one component must NOT be discharged locally: the async product can
+    # starve the component, so local liveness does not lift. Must fall back.
+    cls = classify_formula("AF has(leafA.ready_a)", IDS)
+    assert cls.property_class is PropertyClass.OUT_OF_CLASS
+    assert "starve" in cls.reason
+    center, leaves, (la, lb) = _star()
+    rep = assume_guarantee_verify(center, leaves, ["AF has(leafA.ready_a)"], center_id="center")
+    assert rep.verdicts[0].via == "monolithic_fallback"
+    assert rep.verdicts[0].satisfied == _monolithic(center, la, lb, ["AF has(leafA.ready_a)"]).verdicts[0].satisfied
+
+
+def test_single_component_reachability_stays_in_class():
+    # EF over one component remains exact-local (the witness path survives in the
+    # product), so the fairness clamp must not over-reach and pull it out of class.
+    cls = classify_formula("EF has(leafA.ready_a)", IDS)
+    assert cls.property_class is PropertyClass.SINGLE_COMPONENT
+
+
 def test_cyclic_assumption_refuses_compositional_mode():
     center, leaves, _ = _star(cyclic=True)
     rep = assume_guarantee_verify(

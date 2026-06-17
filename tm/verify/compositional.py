@@ -243,6 +243,26 @@ def _contains_terminal(expr) -> bool:
     return False
 
 
+def _contains_eventually(expr) -> bool:
+    """True if ``expr`` contains an eventually operator (EF/AF/EU/AU).
+
+    These are the liveness/fairness shapes that the compositional fragment
+    cannot soundly discharge — see :func:`classify_formula` and
+    ``docs/verify/COMPOSITIONAL.md`` §4.1.
+    """
+    if isinstance(expr, Predicate):
+        return False
+    if isinstance(expr, Not):
+        return _contains_eventually(expr.child)
+    if isinstance(expr, (And, Or)):
+        return _contains_eventually(expr.left) or _contains_eventually(expr.right)
+    if isinstance(expr, Ctl):
+        return expr.op in ("EF", "AF") or _contains_eventually(expr.child)
+    if isinstance(expr, Until):
+        return True
+    return False
+
+
 def _split_conjuncts(expr) -> List:
     if isinstance(expr, And):
         return _split_conjuncts(expr.left) + _split_conjuncts(expr.right)
@@ -325,6 +345,32 @@ def classify_formula(formula: str, component_ids: Sequence[str]) -> Classificati
         return Classification(
             formula, PropertyClass.OUT_OF_CLASS, refs, False,
             "existential reachability over multiple components is not over-approximation-sound",
+        )
+
+    # Fairness / conditional-liveness — the response pattern AG(p → EF q) ≡
+    # AG(!p || EF q), i.e. an eventually nested under AG. Out of class for TWO
+    # independent soundness reasons (both recorded so the fallback is auditable):
+    #   (1) the ∃-interface abstraction is subset-closed only for safety; it adds
+    #       traces, so EF/AF on the abstraction could hold while the concrete
+    #       system fails it → risk of false PASS;
+    #   (2) even with no abstraction, single-component liveness does not lift to
+    #       the asynchronous product: interleaving admits schedules that *starve*
+    #       a component, so a locally-true AF/EF need not hold in the product.
+    if isinstance(expr, Ctl) and expr.op == "AG" and _contains_eventually(expr.child):
+        return Classification(
+            formula, PropertyClass.OUT_OF_CLASS, refs, False,
+            "fairness/conditional-liveness (AG over an eventually): ∃-abstraction "
+            "is not subset-closed for EF/AF (false-PASS risk) and single-component "
+            "liveness is not preserved by the unfair async product (starvation) → monolithic",
+        )
+
+    if _contains_eventually(expr):
+        scope = "single-component" if len(refs) <= 1 else "cross-component"
+        return Classification(
+            formula, PropertyClass.OUT_OF_CLASS, refs, False,
+            f"{scope} liveness/eventually (AF/EU/nested EF) is not soundly liftable: the "
+            "async product admits schedules that starve the component, so a locally-true "
+            "eventually need not hold in the product → monolithic",
         )
 
     return Classification(
