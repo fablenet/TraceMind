@@ -82,8 +82,8 @@ def _plan_io(bundle: AgentBundleBody) -> Dict[str, Tuple[Set[str], Set[str]]]:
 
 def _verify_steps(
     meta_verify: Mapping[str, Any],
-) -> Tuple[Dict[str, Tuple[Set[str], Set[str]]] | None, List[LintIssue]]:
-    """Map verify step name -> (reads, writes). Returns (None, [issue]) if malformed."""
+) -> Tuple[Dict[str, Tuple[Set[str], Set[str], Set[str]]] | None, List[LintIssue]]:
+    """Map verify step name -> (reads, writes, clears). Returns (None, [issue]) if malformed."""
     steps_raw = meta_verify.get("steps")
     if not isinstance(steps_raw, Mapping):
         return None, [
@@ -94,7 +94,7 @@ def _verify_steps(
                 path="meta.verify.steps",
             )
         ]
-    steps: Dict[str, Tuple[Set[str], Set[str]]] = {}
+    steps: Dict[str, Tuple[Set[str], Set[str], Set[str]]] = {}
     for name, raw in steps_raw.items():
         if not isinstance(raw, Mapping):
             return None, [
@@ -105,13 +105,17 @@ def _verify_steps(
                     path=f"meta.verify.steps.{name}",
                 )
             ]
-        steps[str(name)] = (_as_str_set(raw.get("reads")), _as_str_set(raw.get("writes")))
+        steps[str(name)] = (
+            _as_str_set(raw.get("reads")),
+            _as_str_set(raw.get("writes")),
+            _as_str_set(raw.get("clears")),
+        )
     return steps, []
 
 
 def _reconcile_step_sets(
     plan_io: Dict[str, Tuple[Set[str], Set[str]]],
-    verify_steps: Dict[str, Tuple[Set[str], Set[str]]],
+    verify_steps: Dict[str, Tuple[Set[str], Set[str], Set[str]]],
     issues: List[LintIssue],
 ) -> None:
     for name in sorted(set(plan_io) - set(verify_steps)):
@@ -142,21 +146,24 @@ def _reconcile_step_sets(
 
 def _reconcile_step_io(
     plan_io: Dict[str, Tuple[Set[str], Set[str]]],
-    verify_steps: Dict[str, Tuple[Set[str], Set[str]]],
+    verify_steps: Dict[str, Tuple[Set[str], Set[str], Set[str]]],
     issues: List[LintIssue],
 ) -> None:
     for name in sorted(set(plan_io) & set(verify_steps)):
         plan_in, plan_out = plan_io[name]
-        v_reads, v_writes = verify_steps[name]
-        if v_writes != plan_out:
-            missing = sorted(plan_out - v_writes)
-            extra = sorted(v_writes - plan_out)
+        v_reads, v_writes, v_clears = verify_steps[name]
+        # A cleared fact is also an output the step touches, so reconcile the
+        # union of writes and clears against the plan's declared outputs.
+        v_effects = v_writes | v_clears
+        if v_effects != plan_out:
+            missing = sorted(plan_out - v_effects)
+            extra = sorted(v_effects - plan_out)
             issues.append(
                 LintIssue(
                     code="VERIFY_WRITES_DRIFT",
                     message=(
-                        f"step '{name}' writes drift vs plan outputs "
-                        f"(unmodeled outputs: {missing}; phantom writes: {extra})"
+                        f"step '{name}' writes/clears drift vs plan outputs "
+                        f"(unmodeled outputs: {missing}; phantom effects: {extra})"
                     ),
                     severity="error",
                     path=f"meta.verify.steps.{name}.writes",
@@ -180,7 +187,7 @@ def _reconcile_step_io(
 
 def _check_trigger_reachability(
     meta_verify: Mapping[str, Any],
-    verify_steps: Dict[str, Tuple[Set[str], Set[str]]],
+    verify_steps: Dict[str, Tuple[Set[str], Set[str], Set[str]]],
     issues: List[LintIssue],
 ) -> None:
     """Warn on rule triggers that no step/seed can ever produce (vacuous rules)."""
@@ -193,7 +200,8 @@ def _check_trigger_reachability(
         producible |= {str(k) for k in initial_store.keys()}
     producible |= _as_str_set(meta_verify.get("changed_paths"))
     producible |= _as_str_set(meta_verify.get("initial_pending"))
-    for _reads, writes in verify_steps.values():
+    # Clears remove facts, so they do not "produce" trigger facts.
+    for _reads, writes, _clears in verify_steps.values():
         producible |= writes
     for ridx, rule in enumerate(rules_raw):
         if not isinstance(rule, Mapping):

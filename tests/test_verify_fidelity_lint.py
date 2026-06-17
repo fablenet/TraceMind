@@ -100,6 +100,28 @@ class TestCleanReconciliation:
         )
         assert lint_verify_meta_fidelity(body, raw) == []
 
+    def test_clears_union_writes_reconciles_with_plan_outputs(self) -> None:
+        # A recover step writes 'recovered' and clears 'rate_limited'; both are
+        # outputs the step touches, so writes|clears must equal plan outputs.
+        body, raw = _bundle(
+            plan=[
+                {
+                    "step": "recover",
+                    "agent_id": "agent.x",
+                    "inputs": ["rate_limited"],
+                    "outputs": ["recovered", "rate_limited"],
+                }
+            ],
+            verify_meta={
+                "changed_paths": ["rate_limited"],
+                "steps": {
+                    "recover": {"reads": ["rate_limited"], "writes": ["recovered"], "clears": ["rate_limited"]}
+                },
+                "rules": [{"name": "go", "triggers": ["rate_limited"], "steps": ["recover"]}],
+            },
+        )
+        assert lint_verify_meta_fidelity(body, raw) == []
+
 
 # ─── drift detection ──────────────────────────────────────────────
 
@@ -150,6 +172,22 @@ class TestDriftDetection:
         )
         issues = lint_verify_meta_fidelity(body, raw)
         assert "VERIFY_STEP_ORPHAN" in _codes(issues)
+
+    def test_clears_not_in_plan_outputs_is_writes_drift(self) -> None:
+        # Step clears 'rate_limited' but the plan never declares it as an output.
+        body, raw = _bundle(
+            plan=[{"step": "recover", "agent_id": "agent.x", "inputs": ["rate_limited"], "outputs": ["recovered"]}],
+            verify_meta={
+                "changed_paths": ["rate_limited"],
+                "steps": {
+                    "recover": {"reads": ["rate_limited"], "writes": ["recovered"], "clears": ["rate_limited"]}
+                },
+                "rules": [{"name": "go", "triggers": ["rate_limited"], "steps": ["recover"]}],
+            },
+        )
+        issues = lint_verify_meta_fidelity(body, raw)
+        assert "VERIFY_WRITES_DRIFT" in _codes(issues)
+        assert any(i.code == "VERIFY_WRITES_DRIFT" and i.severity == "error" for i in issues)
 
     def test_reads_drift_is_warning_not_error(self) -> None:
         # verify reads a fact the plan step does not consume — advisory only.

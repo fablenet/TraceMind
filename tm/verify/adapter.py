@@ -128,6 +128,13 @@ class TraceMindAdapter:
         store: Dict[str, object] = dict(state.store)
         for w in spec.writes:
             store[w] = True
+        # Non-monotone clear (ISSUE-FORMLANG P1): remove cleared facts so the
+        # store can move *down* the powerset lattice. ``has(k)`` is membership,
+        # so deletion is exactly "k becomes false". Store still ranges over the
+        # finite 2^keys, so exploration stays decidable/terminating. Applied
+        # after writes, so a key listed in both ends up cleared.
+        for c in getattr(spec, "clears", ()) or ():
+            store.pop(c, None)
         triggered = self._collect_steps([_selector_to_path(w) for w in spec.writes])
         for step in triggered:
             if step not in pending:

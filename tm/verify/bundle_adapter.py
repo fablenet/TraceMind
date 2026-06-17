@@ -47,6 +47,7 @@ def plan_from_verify_meta(meta: Mapping[str, Any]) -> Plan:
             reads=[str(r) for r in (raw.get("reads") or [])],
             writes=[str(w) for w in (raw.get("writes") or [])],
             fn=_noop,
+            clears=[str(c) for c in (raw.get("clears") or [])],
         )
 
     rules_raw = meta.get("rules") or []

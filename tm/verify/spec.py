@@ -45,7 +45,8 @@ def load_plan(path: Path) -> Plan:
     for name, raw in steps_raw.items():
         reads = list(raw.get("reads") or [])
         writes = list(raw.get("writes") or [])
-        steps[name] = StepSpec(name=name, reads=reads, writes=writes, fn=lambda ctx: ctx)
+        clears = list(raw.get("clears") or [])
+        steps[name] = StepSpec(name=name, reads=reads, writes=writes, fn=lambda ctx: ctx, clears=clears)
     rules: List[Rule] = []
     for raw in rules_raw:
         rules.append(
